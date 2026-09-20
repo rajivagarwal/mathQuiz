@@ -588,6 +588,17 @@ p {
   border-bottom: 1px solid var(--rule);
 }
 
+.field input[type='checkbox'] {
+  width: 28px;
+  height: 28px;
+  accent-color: var(--pick);
+}
+
+/* The lengths are still readable while the timer is off, just clearly inert. */
+.field--off {
+  opacity: 0.45;
+}
+
 .field input[type='number'] {
   font: inherit;
   font-variant-numeric: tabular-nums;

@@ -52,9 +52,15 @@ export function createMemoryStorage(): StorageLike {
 export interface Settings {
   readonly studySeconds: number;
   readonly recallSeconds: number;
+  /** When false, both phases run without a clock and end only on a tap. */
+  readonly timed: boolean;
 }
 
-export const DEFAULT_SETTINGS: Settings = { studySeconds: 15, recallSeconds: 30 };
+export const DEFAULT_SETTINGS: Settings = {
+  studySeconds: 15,
+  recallSeconds: 30,
+  timed: false,
+};
 
 export type GameMode = 'find' | 'drag';
 
@@ -165,6 +171,8 @@ export function createStore(storage?: StorageLike): Store {
         typeof stored.recallSeconds === 'number' && Number.isFinite(stored.recallSeconds)
           ? stored.recallSeconds
           : DEFAULT_SETTINGS.recallSeconds,
+      // Absent on settings saved before the toggle existed, so default to on.
+      timed: typeof stored.timed === 'boolean' ? stored.timed : DEFAULT_SETTINGS.timed,
     };
   };
 

@@ -45,8 +45,12 @@ describe('settings', () => {
 
   it('round-trips through storage', () => {
     const storage = createMemoryStorage();
-    createStore(storage).saveSettings({ studySeconds: 45, recallSeconds: 20 });
-    expect(createStore(storage).getSettings()).toEqual({ studySeconds: 45, recallSeconds: 20 });
+    createStore(storage).saveSettings({ studySeconds: 45, recallSeconds: 20, timed: false });
+    expect(createStore(storage).getSettings()).toEqual({
+      studySeconds: 45,
+      recallSeconds: 20,
+      timed: false,
+    });
   });
 
   it('falls back to defaults when the stored value is corrupt', () => {
@@ -61,6 +65,7 @@ describe('settings', () => {
     expect(createStore(storage).getSettings()).toEqual({
       studySeconds: 45,
       recallSeconds: DEFAULT_SETTINGS.recallSeconds,
+      timed: DEFAULT_SETTINGS.timed,
     });
   });
 });
@@ -143,7 +148,7 @@ describe('clearAll', () => {
   it('removes every trace of the app', () => {
     const storage = createMemoryStorage();
     const store = createStore(storage);
-    store.saveSettings({ studySeconds: 45, recallSeconds: 20 });
+    store.saveSettings({ studySeconds: 45, recallSeconds: 20, timed: true });
     store.appendRound(entry(1));
     store.saveFactRecords([newRecord('mul:7x8')]);
     store.saveParentLock({ kind: 'pin', pinHash: 'x', enrolledAt: '2026-01-01T00:00:00.000Z' });
@@ -179,9 +184,9 @@ describe('when storage cannot be written', () => {
   it('keeps working for the rest of the session', () => {
     const store = createStore(readOnlyStorage());
     store.appendRound(entry(1));
-    store.saveSettings({ studySeconds: 45, recallSeconds: 20 });
+    store.saveSettings({ studySeconds: 45, recallSeconds: 20, timed: false });
     expect(store.getRounds()).toHaveLength(1);
-    expect(store.getSettings()).toEqual({ studySeconds: 45, recallSeconds: 20 });
+    expect(store.getSettings()).toEqual({ studySeconds: 45, recallSeconds: 20, timed: false });
   });
 
   it('reports itself persistent while writes succeed', () => {
@@ -233,7 +238,31 @@ describe('schema version', () => {
 });
 
 describe('shipped defaults', () => {
-  it('studies for 15 seconds and allows 30 to find them', () => {
-    expect(DEFAULT_SETTINGS).toEqual({ studySeconds: 15, recallSeconds: 30 });
+  it('ships untimed, with 15 and 30 second lengths ready if the timer is turned on', () => {
+    expect(DEFAULT_SETTINGS).toEqual({ studySeconds: 15, recallSeconds: 30, timed: false });
+  });
+
+  it('falls back to the default for settings saved before the toggle existed', () => {
+    const storage = createMemoryStorage();
+    storage.setItem(
+      `${KEY_PREFIX}settings`,
+      JSON.stringify({ studySeconds: 20, recallSeconds: 40 }),
+    );
+    expect(createStore(storage).getSettings().timed).toBe(DEFAULT_SETTINGS.timed);
+  });
+
+  it('ignores a non-boolean timer flag', () => {
+    const storage = createMemoryStorage();
+    storage.setItem(
+      `${KEY_PREFIX}settings`,
+      JSON.stringify({ studySeconds: 20, recallSeconds: 40, timed: 'nope' }),
+    );
+    expect(createStore(storage).getSettings().timed).toBe(DEFAULT_SETTINGS.timed);
+  });
+
+  it('remembers the timer being switched on', () => {
+    const storage = createMemoryStorage();
+    createStore(storage).saveSettings({ ...DEFAULT_SETTINGS, timed: true });
+    expect(createStore(storage).getSettings().timed).toBe(true);
   });
 });

@@ -45,6 +45,14 @@ function tile(value: string, label: string): HTMLElement {
   });
 }
 
+function toggleField(label: string, checked: boolean): HTMLElement {
+  const input = el('input');
+  input.type = 'checkbox';
+  input.checked = checked;
+  input.setAttribute('aria-label', label);
+  return el('div', { class: 'field', children: [el('span', { text: label }), input] });
+}
+
 function numberField(label: string, value: number, min: number, max: number): HTMLElement {
   const input = el('input');
   input.type = 'number';
@@ -222,9 +230,23 @@ function gate(props: ParentProps): Screen {
 function unlocked(props: ParentProps): Screen {
   const { stats, settings } = props;
 
+  const useTimer = toggleField('Use a timer', settings.timed);
+  const timerInput = useTimer.querySelector('input');
   const study = numberField('Study time (seconds)', settings.studySeconds, 5, 120);
   const recall = numberField('Finding time (seconds)', settings.recallSeconds, 5, 120);
   const saved = el('span', { class: 'quiet', text: '' });
+
+  // The two lengths mean nothing with the timer off, so they follow the toggle.
+  const syncLengths = (): void => {
+    const on = timerInput?.checked ?? true;
+    for (const field of [study, recall]) {
+      const input = field.querySelector('input');
+      if (input) input.disabled = !on;
+      field.classList.toggle('field--off', !on);
+    }
+  };
+  timerInput?.addEventListener('change', syncLengths);
+  syncLengths();
 
   const readSeconds = (field: HTMLElement, fallback: number): number => {
     const input = field.querySelector('input');
@@ -235,12 +257,13 @@ function unlocked(props: ParentProps): Screen {
 
   const save = el('button', {
     class: 'btn',
-    text: 'Save times',
+    text: 'Save',
     attrs: { type: 'button' },
     onClick: () => {
       props.onSaveSettings({
         studySeconds: readSeconds(study, settings.studySeconds),
         recallSeconds: readSeconds(recall, settings.recallSeconds),
+        timed: timerInput?.checked ?? true,
       });
       saved.textContent = 'Saved.';
     },
@@ -287,6 +310,11 @@ function unlocked(props: ParentProps): Screen {
       el('div', {
         children: [
           el('h3', { text: 'Round timing' }),
+          el('p', {
+            class: 'quiet',
+            text: 'With the timer off, a round lasts as long as it takes.',
+          }),
+          useTimer,
           study,
           recall,
           el('div', { class: 'row', children: [save, saved] }),

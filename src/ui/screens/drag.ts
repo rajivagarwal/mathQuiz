@@ -1,12 +1,13 @@
 import { OP_GLYPH, factId } from '../../domain/facts';
 import type { DragRound, Tile } from '../../domain/dragRound';
 import { FACTS_PER_ROUND } from '../../domain/round';
-import { browserCountdown } from '../countdown';
+import { browserCountdown, type Countdown } from '../countdown';
 import { el, screen, type Screen } from '../dom';
 
 export interface DragProps {
   readonly round: DragRound;
-  readonly durationMs: number;
+  /** Null runs the phase without a clock: it ends on Done, or at five placements. */
+  readonly durationMs: number | null;
   readonly onDone: (placements: Map<string, string>, recallMs: number) => void;
 }
 
@@ -16,9 +17,6 @@ const URGENT_MS = 5000;
 const DRAG_THRESHOLD_PX = 6;
 
 export function dragScreen({ round, durationMs, onDone }: DragProps): Screen {
-  const fill = el('div', { class: 'bar__fill' });
-  const bar = el('div', { class: 'bar', children: [fill] });
-  const clock = el('span', { class: 'clock', text: String(Math.ceil(durationMs / 1000)) });
   const counter = el('span', { class: 'counter', text: `0 of ${FACTS_PER_ROUND}` });
 
   /** factId -> tileId. A placement is final once made. */
@@ -59,13 +57,19 @@ export function dragScreen({ round, durationMs, onDone }: DragProps): Screen {
     }
   };
 
+  const startedAt = performance.now();
+  let countdown: Countdown | null = null;
   let finished = false;
+
   const finish = (): void => {
     if (finished) return;
     finished = true;
-    countdown.stop();
+    countdown?.stop();
     clearGhost();
-    onDone(new Map(placements), countdown.elapsedMs());
+    onDone(
+      new Map(placements),
+      countdown ? countdown.elapsedMs() : performance.now() - startedAt,
+    );
   };
 
   const place = (slotFactId: string, tileId: string): void => {
@@ -216,31 +220,52 @@ export function dragScreen({ round, durationMs, onDone }: DragProps): Screen {
     }),
   });
 
-  const countdown = browserCountdown(
-    durationMs,
-    (remaining) => {
-      fill.style.transform = `scaleX(${remaining / durationMs})`;
-      clock.textContent = String(Math.ceil(remaining / 1000));
-      bar.classList.toggle('bar--urgent', remaining <= URGENT_MS);
-    },
-    finish,
-  );
-  countdown.start();
+  let topbar: HTMLElement | null = null;
+  if (durationMs !== null) {
+    const fill = el('div', { class: 'bar__fill' });
+    const bar = el('div', { class: 'bar', children: [fill] });
+    const clock = el('span', { class: 'clock', text: String(Math.ceil(durationMs / 1000)) });
+    topbar = el('div', { class: 'topbar', children: [bar, clock] });
+
+    countdown = browserCountdown(
+      durationMs,
+      (remaining) => {
+        fill.style.transform = `scaleX(${remaining / durationMs})`;
+        clock.textContent = String(Math.ceil(remaining / 1000));
+        bar.classList.toggle('bar--urgent', remaining <= URGENT_MS);
+      },
+      finish,
+    );
+    countdown.start();
+  }
+
+  // Without a clock the round would otherwise only end once all five slots are
+  // filled, which strands a child who cannot place the rest.
+  const done =
+    durationMs === null
+      ? el('button', {
+          class: 'btn btn--big',
+          text: 'Done',
+          attrs: { type: 'button' },
+          onClick: () => finish(),
+        })
+      : null;
 
   const element = screen('screen', [
-    el('div', { class: 'topbar', children: [bar, clock] }),
+    topbar,
     el('div', {
       class: 'headline-row',
       children: [el('p', { class: 'prompt', text: 'Put each answer back' }), counter],
     }),
     equations,
     tray,
+    done,
   ]);
 
   return {
     element,
     destroy: () => {
-      countdown.stop();
+      countdown?.stop();
       clearGhost();
     },
   };

@@ -189,16 +189,18 @@ export function createApp(root: HTMLElement): void {
 
       case 'study': {
         const { game, seed } = view;
+        const settings = store.getSettings();
         return studyScreen({
           facts: game.round.facts,
-          durationMs: store.getSettings().studySeconds * 1000,
+          durationMs: settings.timed ? settings.studySeconds * 1000 : null,
           onDone: (studyMs) => show({ name: 'recall', game, seed, studyMs }),
         });
       }
 
       case 'recall': {
         const { game, seed, studyMs } = view;
-        const durationMs = store.getSettings().recallSeconds * 1000;
+        const settings = store.getSettings();
+        const durationMs = settings.timed ? settings.recallSeconds * 1000 : null;
 
         if (game.mode === 'find') {
           const { round } = game;

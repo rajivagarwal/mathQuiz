@@ -1,11 +1,12 @@
 import { OP_GLYPH, equationText } from '../../domain/facts';
 import { MAX_SELECTIONS, cardClusters, type Card, type Round } from '../../domain/round';
-import { browserCountdown } from '../countdown';
+import { browserCountdown, type Countdown } from '../countdown';
 import { el, screen, type Screen } from '../dom';
 
 export interface RecallProps {
   readonly round: Round;
-  readonly durationMs: number;
+  /** Null runs the phase without a clock: it ends on Done. */
+  readonly durationMs: number | null;
   readonly onDone: (selectedCardIds: string[], recallMs: number) => void;
 }
 
@@ -24,9 +25,6 @@ export function cardFace(card: Card): HTMLButtonElement {
 }
 
 export function recallScreen({ round, durationMs, onDone }: RecallProps): Screen {
-  const fill = el('div', { class: 'bar__fill' });
-  const bar = el('div', { class: 'bar', children: [fill] });
-  const clock = el('span', { class: 'clock', text: String(Math.ceil(durationMs / 1000)) });
   const counter = el('span', { class: 'counter', text: `0 of ${MAX_SELECTIONS}` });
 
   const picked = new Set<string>();
@@ -44,7 +42,8 @@ export function recallScreen({ round, durationMs, onDone }: RecallProps): Screen
     for (const [id, button] of buttons) {
       button.classList.toggle('card--picked', picked.has(id));
     }
-    done.disabled = picked.size === 0;
+    // Untimed, Done is the only way out, so it must work from an empty board.
+    done.disabled = durationMs !== null && picked.size === 0;
   };
 
   const toggle = (id: string): void => {
@@ -72,28 +71,39 @@ export function recallScreen({ round, durationMs, onDone }: RecallProps): Screen
     ),
   });
 
+  const startedAt = performance.now();
+  let countdown: Countdown | null = null;
   let finished = false;
+
   const finish = (): void => {
     if (finished) return;
     finished = true;
-    countdown.stop();
-    onDone([...picked], countdown.elapsedMs());
+    countdown?.stop();
+    onDone([...picked], countdown ? countdown.elapsedMs() : performance.now() - startedAt);
   };
 
-  const countdown = browserCountdown(
-    durationMs,
-    (remaining) => {
-      fill.style.transform = `scaleX(${remaining / durationMs})`;
-      clock.textContent = String(Math.ceil(remaining / 1000));
-      bar.classList.toggle('bar--urgent', remaining <= URGENT_MS);
-    },
-    finish,
-  );
-  countdown.start();
+  let topbar: HTMLElement | null = null;
+  if (durationMs !== null) {
+    const fill = el('div', { class: 'bar__fill' });
+    const bar = el('div', { class: 'bar', children: [fill] });
+    const clock = el('span', { class: 'clock', text: String(Math.ceil(durationMs / 1000)) });
+    topbar = el('div', { class: 'topbar', children: [bar, clock] });
+
+    countdown = browserCountdown(
+      durationMs,
+      (remaining) => {
+        fill.style.transform = `scaleX(${remaining / durationMs})`;
+        clock.textContent = String(Math.ceil(remaining / 1000));
+        bar.classList.toggle('bar--urgent', remaining <= URGENT_MS);
+      },
+      finish,
+    );
+    countdown.start();
+  }
   refresh();
 
   const element = screen('screen', [
-    el('div', { class: 'topbar', children: [bar, clock] }),
+    topbar,
     el('div', {
       class: 'headline-row',
       children: [el('p', { class: 'prompt', text: 'Find the five you just saw' }), counter],
@@ -102,5 +112,5 @@ export function recallScreen({ round, durationMs, onDone }: RecallProps): Screen
     done,
   ]);
 
-  return { element, destroy: () => countdown.stop() };
+  return { element, destroy: () => countdown?.stop() };
 }
