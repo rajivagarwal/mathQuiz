@@ -83,7 +83,7 @@ export function createApp(root: HTMLElement): void {
   let current: Screen | null = null;
   let view: View = { name: 'home', notice: null };
   /** So "Next round" offers the same game type the child just played. */
-  let lastMode: GameMode = 'find';
+  let lastMode: GameMode = 'drag';
 
   const show = (next: View): void => {
     view = next;

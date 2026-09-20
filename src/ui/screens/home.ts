@@ -13,6 +13,39 @@ export interface HomeProps {
   readonly onParent: () => void;
 }
 
+/**
+ * "Find the five" is built, tested and fully wired -- it is simply not offered
+ * on the home screen for now. Flip this to put both game types back in front of
+ * the child; nothing else needs changing.
+ */
+const OFFER_BOTH_GAME_TYPES = false;
+
+/** With one game type there is no choice to present, so the button just starts. */
+const startButtons = (props: HomeProps): HTMLElement[] =>
+  OFFER_BOTH_GAME_TYPES
+    ? [
+        el('button', {
+          class: 'btn btn--primary btn--big',
+          text: 'Find the five',
+          attrs: { type: 'button' },
+          onClick: props.onStartFind,
+        }),
+        el('button', {
+          class: 'btn btn--big',
+          text: 'Drag the answers',
+          attrs: { type: 'button' },
+          onClick: props.onStartDrag,
+        }),
+      ]
+    : [
+        el('button', {
+          class: 'btn btn--primary btn--big',
+          text: 'Start a round',
+          attrs: { type: 'button' },
+          onClick: props.onStartDrag,
+        }),
+      ];
+
 function headline(progress: KidProgress): string {
   if (progress.totalRounds === 0) return 'Remember five equations, then prove it.';
   if (progress.currentPerfectStreak >= 2) {
@@ -58,18 +91,7 @@ export function homeScreen(props: HomeProps): Screen {
     el('div', {
       class: 'actions',
       children: [
-        el('button', {
-          class: 'btn btn--primary btn--big',
-          text: 'Find the five',
-          attrs: { type: 'button' },
-          onClick: props.onStartFind,
-        }),
-        el('button', {
-          class: 'btn btn--big',
-          text: 'Drag the answers',
-          attrs: { type: 'button' },
-          onClick: props.onStartDrag,
-        }),
+        ...startButtons(props),
         el('div', {
           class: 'row',
           children: [
