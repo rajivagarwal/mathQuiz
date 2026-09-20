@@ -15,10 +15,6 @@ const URGENT_MS = 5000;
 /** How far a pointer must travel before a press counts as a drag, not a tap. */
 const DRAG_THRESHOLD_PX = 6;
 
-/** Clearance between the dragged tile and the pointer, wide enough that a
-    fingertip does not cover the slot being aimed at. */
-const GHOST_GAP_PX = 44;
-
 export function dragScreen({ round, durationMs, onDone }: DragProps): Screen {
   const fill = el('div', { class: 'bar__fill' });
   const bar = el('div', { class: 'bar', children: [fill] });
@@ -39,9 +35,21 @@ export function dragScreen({ round, durationMs, onDone }: DragProps): Screen {
     ghost = null;
   };
 
+  /** Left-hand-side spans per equation, lit up while that row is the target. */
+  const rowParts = new Map<string, HTMLElement[]>();
+
   const highlight = (slot: HTMLButtonElement | null): void => {
     for (const button of slots.values()) button.classList.remove('slot--over');
-    slot?.classList.add('slot--over');
+    for (const parts of rowParts.values()) {
+      for (const part of parts) part.classList.remove('eq--target');
+    }
+    if (!slot) return;
+
+    slot.classList.add('slot--over');
+    const targeted = slot.dataset['fact'];
+    for (const part of (targeted && rowParts.get(targeted)) || []) {
+      part.classList.add('eq--target');
+    }
   };
 
   const select = (tileId: string | null): void => {
@@ -116,13 +124,13 @@ export function dragScreen({ round, durationMs, onDone }: DragProps): Screen {
         button.classList.add('tile--lifted');
       }
 
-      // The ghost rides above the pointer rather than under it: on a phone a
-      // fingertip would otherwise cover the slot being aimed at. Hit testing
-      // still uses the pointer itself, which is what the child is pointing with.
+      // The tile rides under the pointer, where the hand expects it. The drop
+      // target is signalled by lighting up the whole equation instead, which
+      // stays visible past the edges of both the tile and a fingertip.
       ghost?.style.setProperty(
         'transform',
-        `translate(${moveEvent.clientX - rect.width / 2}px, ${moveEvent.clientY - GHOST_GAP_PX - rect.height}px)`,
-    );
+        `translate(${moveEvent.clientX - rect.width / 2}px, ${moveEvent.clientY - rect.height / 2}px)`,
+      );
       highlight(slotUnder(moveEvent.clientX, moveEvent.clientY));
     };
 
@@ -179,16 +187,15 @@ export function dragScreen({ round, durationMs, onDone }: DragProps): Screen {
 
       slots.set(id, slot);
 
-      return el('div', {
-        class: 'eq',
-        children: [
-          el('span', { text: String(fact.left) }),
-          el('span', { class: 'op', text: OP_GLYPH[fact.op] }),
-          el('span', { text: String(fact.right) }),
-          el('span', { class: 'is', text: '=' }),
-          slot,
-        ],
-      });
+      const parts = [
+        el('span', { text: String(fact.left) }),
+        el('span', { class: 'op', text: OP_GLYPH[fact.op] }),
+        el('span', { text: String(fact.right) }),
+        el('span', { class: 'is', text: '=' }),
+      ];
+      rowParts.set(id, parts);
+
+      return el('div', { class: 'eq', children: [...parts, slot] });
     }),
   });
 

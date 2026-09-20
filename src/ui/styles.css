@@ -80,9 +80,20 @@ html,
 body {
   margin: 0;
   height: 100%;
+  overscroll-behavior: none;
 }
 
+/*
+  iOS rubber-bands the document even when nothing overflows, and
+  `overscroll-behavior` alone does not stop it. Pinning the body to the viewport
+  removes the document scroller altogether, so there is nothing left to bounce.
+  Screens that genuinely scroll do so inside their own container.
+*/
 body {
+  position: fixed;
+  inset: 0;
+  width: 100%;
+  overflow: hidden;
   background: var(--paper);
   color: var(--ink);
   font-family: var(--ui);
@@ -95,7 +106,7 @@ body {
 
 /* The whole app is one viewport-height column: no page scroll during a timed phase. */
 .app {
-  height: 100dvh;
+  height: 100%;
   display: flex;
   flex-direction: column;
   max-width: 560px;
@@ -115,6 +126,8 @@ body {
 .screen--scroll {
   overflow-y: auto;
   -webkit-overflow-scrolling: touch;
+  /* Keep a scroll that reaches its end from handing the gesture to the page. */
+  overscroll-behavior: contain;
 }
 
 /* ---------- type ---------- */
@@ -693,9 +706,16 @@ p {
   transition: border-color 120ms ease, background-color 120ms ease, transform 120ms ease;
 }
 
+/* The dragged tile covers the slot, so the signal has to reach past it: the
+   slot swells and turns solid, and the equation it belongs to lights up. */
 .slot--over {
+  border-style: solid;
   border-color: var(--pick);
-  transform: scale(1.07);
+  transform: scale(1.12);
+}
+
+.eq > span.eq--target {
+  color: var(--pick);
 }
 
 .slot--true,
