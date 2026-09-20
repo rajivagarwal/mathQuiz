@@ -1,0 +1,835 @@
+/*
+  Math Flash.
+
+  The look is a printed card game: flat riso-style colour, no gradients, and a
+  hard offset edge under every card that collapses when it is pressed. Cards are
+  the one loud element; everything around them stays quiet.
+*/
+
+@font-face {
+  font-family: 'Bricolage Grotesque';
+  src: url('./fonts/bricolage-grotesque.woff2') format('woff2-variations');
+  font-weight: 400 800;
+  font-stretch: 75% 100%;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'Instrument Sans';
+  src: url('./fonts/instrument-sans.woff2') format('woff2-variations');
+  font-weight: 400 700;
+  font-display: swap;
+}
+
+:root {
+  --paper: #e8ecf3;
+  --ink: #16183d;
+  --ink-soft: #5b6180;
+  --card: #ffffff;
+  --edge: #c0c8d9;
+  --rule: #d3daE6;
+  /* Empty drop slots. Deliberately its own token: --edge is a shadow colour and
+     goes almost black in the dark theme, which left the slots invisible. */
+  --slot-edge: #a9b3c9;
+
+  --pick: #ff3e9a;
+  --pick-edge: #b5216a;
+  --pick-on: #ffffff;
+
+  --true: #00a05b;
+  --true-edge: #007042;
+  --false: #e5342a;
+  --false-edge: #a41f18;
+
+  --display: 'Bricolage Grotesque', ui-sans-serif, system-ui, sans-serif;
+  --ui: 'Instrument Sans', ui-sans-serif, system-ui, sans-serif;
+
+  --gutter: 16px;
+  --radius: 14px;
+  --lift: 4px;
+
+  --tap: 44px;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --paper: #14162e;
+    --ink: #e9ecf6;
+    --ink-soft: #9aa2c4;
+    --card: #23264c;
+    --edge: #0a0b1c;
+    --rule: #33375f;
+    --slot-edge: #626a9c;
+
+    --pick: #ff58a8;
+    --pick-edge: #9d1459;
+    --pick-on: #1a0a12;
+
+    --true: #29c17d;
+    --true-edge: #0d6e44;
+    --false: #ff5f52;
+    --false-edge: #9c231b;
+  }
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html,
+body {
+  margin: 0;
+  height: 100%;
+}
+
+body {
+  background: var(--paper);
+  color: var(--ink);
+  font-family: var(--ui);
+  font-size: 16px;
+  line-height: 1.45;
+  -webkit-font-smoothing: antialiased;
+  -webkit-text-size-adjust: 100%;
+  overscroll-behavior: none;
+}
+
+/* The whole app is one viewport-height column: no page scroll during a timed phase. */
+.app {
+  height: 100dvh;
+  display: flex;
+  flex-direction: column;
+  max-width: 560px;
+  margin-inline: auto;
+  padding: env(safe-area-inset-top) var(--gutter) env(safe-area-inset-bottom);
+}
+
+.screen {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  padding-block: 14px;
+}
+
+.screen--scroll {
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+}
+
+/* ---------- type ---------- */
+
+h1,
+h2,
+h3 {
+  font-family: var(--display);
+  font-weight: 700;
+  margin: 0;
+  line-height: 1.1;
+  letter-spacing: -0.015em;
+}
+
+h1 {
+  font-size: clamp(30px, 9vw, 40px);
+  font-stretch: 90%;
+}
+
+h2 {
+  font-size: clamp(21px, 5.5vw, 26px);
+}
+
+h3 {
+  font-size: 17px;
+  font-weight: 600;
+}
+
+p {
+  margin: 0;
+}
+
+.prompt {
+  font-size: clamp(16px, 4.4vw, 19px);
+  font-weight: 500;
+  color: var(--ink);
+}
+
+.quiet {
+  color: var(--ink-soft);
+  font-size: 14px;
+}
+
+.num {
+  font-family: var(--display);
+  font-variant-numeric: tabular-nums lining-nums;
+}
+
+/* ---------- buttons ---------- */
+
+.btn {
+  font: inherit;
+  font-weight: 600;
+  min-height: var(--tap);
+  padding: 12px 20px;
+  border: 0;
+  border-radius: var(--radius);
+  background: var(--card);
+  color: var(--ink);
+  box-shadow: 0 var(--lift) 0 var(--edge);
+  cursor: pointer;
+  transition: transform 90ms ease, box-shadow 90ms ease;
+  touch-action: manipulation;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.btn:active:not(:disabled) {
+  transform: translateY(var(--lift));
+  box-shadow: 0 0 0 var(--edge);
+}
+
+.btn:disabled {
+  background: var(--rule);
+  color: var(--ink-soft);
+  box-shadow: 0 var(--lift) 0 var(--edge);
+  cursor: default;
+}
+
+.btn--primary {
+  background: var(--pick);
+  color: var(--pick-on);
+  box-shadow: 0 var(--lift) 0 var(--pick-edge);
+  font-size: clamp(17px, 4.8vw, 20px);
+  font-family: var(--display);
+  font-weight: 700;
+}
+
+.btn--primary:active:not(:disabled) {
+  box-shadow: 0 0 0 var(--pick-edge);
+}
+
+.btn--big {
+  width: 100%;
+  padding-block: 18px;
+}
+
+.btn--quiet {
+  background: transparent;
+  box-shadow: none;
+  color: var(--ink-soft);
+  font-weight: 500;
+  padding: 10px 12px;
+}
+
+.btn--quiet:active:not(:disabled) {
+  transform: none;
+  box-shadow: none;
+  color: var(--ink);
+}
+
+:focus-visible {
+  outline: 3px solid var(--pick);
+  outline-offset: 3px;
+}
+
+/* ---------- countdown ---------- */
+
+.topbar {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding-top: 8px;
+}
+
+.bar {
+  flex: 1;
+  height: 8px;
+  border-radius: 99px;
+  background: var(--rule);
+  overflow: hidden;
+}
+
+.bar__fill {
+  height: 100%;
+  width: 100%;
+  background: var(--ink);
+  transform-origin: left center;
+}
+
+.bar--urgent .bar__fill {
+  background: var(--false);
+}
+
+.clock {
+  font-family: var(--display);
+  font-variant-numeric: tabular-nums;
+  font-weight: 700;
+  font-size: 19px;
+  min-width: 2.6ch;
+  text-align: right;
+}
+
+.counter {
+  font-family: var(--display);
+  font-variant-numeric: tabular-nums;
+  font-weight: 600;
+  color: var(--ink-soft);
+  font-size: 15px;
+}
+
+.headline-row {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+/* ---------- study: equations aligned on their operators ---------- */
+
+.equations {
+  flex: 1;
+  min-height: 0;
+  display: grid;
+  grid-template-columns: repeat(5, auto);
+  align-content: center;
+  justify-content: center;
+  column-gap: 0.32em;
+  row-gap: clamp(8px, 2.6vh, 20px);
+  font-family: var(--display);
+  font-variant-numeric: tabular-nums lining-nums;
+  font-weight: 700;
+  font-size: clamp(30px, 9.5vw, 44px);
+  line-height: 1;
+}
+
+.eq {
+  display: contents;
+}
+
+.eq > span {
+  text-align: right;
+}
+
+.eq .op,
+.eq .is {
+  color: var(--ink-soft);
+  font-weight: 500;
+  text-align: center;
+}
+
+.eq > span:last-child {
+  text-align: left;
+}
+
+/* ---------- recall + reveal grid ---------- */
+
+/* Five clusters stacked, each holding one left-hand side's four candidates,
+   divided by a rule. The line is structural, not decoration: it says these four
+   cards are answers to the same question.
+
+   Every cluster carries the same padding and border box, the first one's border
+   simply being transparent, so `flex: 1` gives them all identical card heights. */
+.grid {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+.cluster {
+  flex: 1;
+  min-height: 0;
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  grid-template-rows: repeat(2, minmax(0, 1fr));
+  gap: 7px;
+  padding-block: 6px;
+  border-top: 2px solid transparent;
+}
+
+.cluster + .cluster {
+  border-top-color: var(--rule);
+}
+
+.card {
+  font: inherit;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 0;
+  padding: 4px 6px;
+  border: 0;
+  border-radius: var(--radius);
+  background: var(--card);
+  color: var(--ink);
+  box-shadow: 0 var(--lift) 0 var(--edge);
+  font-family: var(--display);
+  font-variant-numeric: tabular-nums lining-nums;
+  font-weight: 700;
+  font-size: clamp(18px, 7vw, 30px);
+  line-height: 1.1;
+  cursor: pointer;
+  touch-action: manipulation;
+  -webkit-tap-highlight-color: transparent;
+  transition: transform 90ms ease, box-shadow 90ms ease, background-color 90ms ease;
+}
+
+.card__eq {
+  white-space: nowrap;
+}
+
+.card:active:not(:disabled) {
+  transform: translateY(2px);
+  box-shadow: 0 2px 0 var(--edge);
+}
+
+/* Picked: the card is pressed into the page and stays there. */
+.card--picked {
+  background: var(--pick);
+  color: var(--pick-on);
+  transform: translateY(var(--lift));
+  box-shadow: 0 0 0 var(--pick-edge);
+}
+
+.card--picked:active:not(:disabled) {
+  transform: translateY(var(--lift));
+  box-shadow: 0 0 0 var(--pick-edge);
+}
+
+.card--true {
+  background: var(--true);
+  color: #fff;
+  transform: translateY(var(--lift));
+  box-shadow: 0 0 0 var(--true-edge);
+}
+
+.card--false {
+  background: var(--false);
+  color: #fff;
+  transform: translateY(var(--lift));
+  box-shadow: 0 0 0 var(--false-edge);
+}
+
+/* A true card the child never picked: outlined, not filled. */
+.card--missed {
+  background: var(--card);
+  color: var(--ink);
+  border: 3px dashed var(--true);
+}
+
+.card--dim {
+  opacity: 0.42;
+}
+
+.card:disabled {
+  cursor: default;
+}
+
+/* ---------- home ---------- */
+
+.hero {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: 18px;
+}
+
+.wordmark {
+  font-family: var(--display);
+  font-weight: 800;
+  font-stretch: 85%;
+  font-size: clamp(44px, 14vw, 68px);
+  line-height: 0.92;
+  letter-spacing: -0.03em;
+  margin: 0;
+}
+
+.streak {
+  font-family: var(--display);
+  font-weight: 700;
+  font-size: clamp(22px, 6vw, 28px);
+  line-height: 1.15;
+}
+
+.meter {
+  height: 12px;
+  border-radius: 99px;
+  background: var(--rule);
+  overflow: hidden;
+}
+
+.meter__fill {
+  height: 100%;
+  background: var(--pick);
+}
+
+.actions {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.row {
+  display: flex;
+  gap: 10px;
+  justify-content: space-between;
+  align-items: center;
+}
+
+/* ---------- result ---------- */
+
+.verdict {
+  display: flex;
+  align-items: baseline;
+  gap: 10px;
+}
+
+.verdict__score {
+  font-family: var(--display);
+  font-weight: 800;
+  font-size: clamp(40px, 13vw, 60px);
+  line-height: 1;
+  font-variant-numeric: tabular-nums;
+}
+
+/* ---------- stats ---------- */
+
+.tiles {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.tile {
+  background: var(--card);
+  border-radius: var(--radius);
+  box-shadow: 0 var(--lift) 0 var(--edge);
+  padding: 14px;
+}
+
+.tile__value {
+  font-family: var(--display);
+  font-weight: 700;
+  font-size: 27px;
+  line-height: 1.1;
+  font-variant-numeric: tabular-nums;
+}
+
+.tile__label {
+  color: var(--ink-soft);
+  font-size: 13px;
+}
+
+.list {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.list__row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 9px 2px;
+  border-bottom: 1px solid var(--rule);
+}
+
+.list__row:last-child {
+  border-bottom: 0;
+}
+
+.list__name {
+  font-family: var(--display);
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  min-width: 5.5ch;
+}
+
+.list__value {
+  margin-left: auto;
+  font-variant-numeric: tabular-nums;
+  color: var(--ink-soft);
+  font-size: 14px;
+}
+
+.trend {
+  display: flex;
+  align-items: flex-end;
+  gap: 3px;
+  height: 64px;
+}
+
+.trend__bar {
+  flex: 1;
+  min-width: 3px;
+  background: var(--pick);
+  border-radius: 3px 3px 0 0;
+}
+
+.field {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 10px 0;
+  border-bottom: 1px solid var(--rule);
+}
+
+.field input[type='number'] {
+  font: inherit;
+  font-variant-numeric: tabular-nums;
+  width: 5.5ch;
+  text-align: right;
+  padding: 8px 10px;
+  border: 2px solid var(--rule);
+  border-radius: 10px;
+  background: var(--card);
+  color: var(--ink);
+}
+
+.field input[type='number']:focus-visible {
+  border-color: var(--pick);
+}
+
+.danger {
+  color: var(--false);
+}
+
+.btn--danger {
+  background: var(--false);
+  color: #fff;
+  box-shadow: 0 var(--lift) 0 var(--false-edge);
+}
+
+.btn--danger:active:not(:disabled) {
+  box-shadow: 0 0 0 var(--false-edge);
+}
+
+.banner {
+  background: var(--card);
+  border-left: 5px solid var(--false);
+  border-radius: 8px;
+  padding: 10px 12px;
+  font-size: 14px;
+}
+
+.pin {
+  font: inherit;
+  font-family: var(--display);
+  font-size: 30px;
+  font-variant-numeric: tabular-nums;
+  letter-spacing: 0.5em;
+  text-align: center;
+  width: 100%;
+  padding: 12px;
+  border: 2px solid var(--rule);
+  border-radius: var(--radius);
+  background: var(--card);
+  color: var(--ink);
+}
+
+.centered {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: 16px;
+  text-align: center;
+}
+
+.spacer {
+  flex: 1;
+  min-height: 0;
+}
+
+/* ---------- drag the answers ---------- */
+
+.equations--drag {
+  font-size: clamp(22px, 7vw, 32px);
+  row-gap: clamp(10px, 2.4vh, 20px);
+}
+
+/* The result view adds a sixth column holding the answer that should have gone
+   in, so a wrong placement is shown next to the right one rather than replaced. */
+.equations--fixed {
+  grid-template-columns: repeat(6, auto);
+}
+
+.equations--fixed .ans {
+  text-align: left;
+}
+
+.ans--true {
+  color: var(--true);
+}
+
+.ans--false {
+  color: var(--false);
+  text-decoration: line-through;
+  text-decoration-thickness: 0.06em;
+}
+
+.fix {
+  color: var(--true);
+  padding-left: 0.45em;
+}
+
+.slot {
+  font: inherit;
+  font-family: var(--display);
+  font-variant-numeric: tabular-nums lining-nums;
+  font-weight: 700;
+  min-width: 2.7em;
+  min-height: 1.45em;
+  padding: 0 0.2em;
+  border: 3px dashed var(--slot-edge);
+  border-radius: 10px;
+  background: transparent;
+  color: var(--ink);
+  cursor: pointer;
+  touch-action: manipulation;
+  -webkit-tap-highlight-color: transparent;
+  transition: border-color 120ms ease, background-color 120ms ease, transform 120ms ease;
+}
+
+.slot--over {
+  border-color: var(--pick);
+  transform: scale(1.07);
+}
+
+.slot--true,
+.slot--false {
+  border-style: solid;
+  color: #fff;
+}
+
+.slot--true {
+  border-color: var(--true);
+  background: var(--true);
+}
+
+.slot--false {
+  border-color: var(--false);
+  background: var(--false);
+}
+
+.tray {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 8px;
+}
+
+.tile {
+  font: inherit;
+  font-family: var(--display);
+  font-variant-numeric: tabular-nums lining-nums;
+  font-weight: 700;
+  font-size: clamp(20px, 6.4vw, 28px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: var(--tap);
+  padding: 10px 4px;
+  border: 0;
+  border-radius: var(--radius);
+  background: var(--card);
+  color: var(--ink);
+  box-shadow: 0 var(--lift) 0 var(--edge);
+  cursor: grab;
+  /* The drag is driven by pointer events, so the browser must not claim the
+     gesture for scrolling or text selection. */
+  touch-action: none;
+  -webkit-tap-highlight-color: transparent;
+  transition: transform 90ms ease, box-shadow 90ms ease, opacity 160ms ease;
+}
+
+/* Armed by a tap, waiting for a slot. Pressed into the page like a picked card. */
+.tile--selected {
+  background: var(--pick);
+  color: var(--pick-on);
+  transform: translateY(var(--lift));
+  box-shadow: 0 0 0 var(--pick-edge);
+}
+
+/* The original stays in place, faded, while the ghost follows the finger. */
+.tile--lifted {
+  opacity: 0.25;
+}
+
+.tile--used {
+  opacity: 0.16;
+  box-shadow: none;
+  cursor: default;
+}
+
+.tile--ghost {
+  position: fixed;
+  left: 0;
+  top: 0;
+  z-index: 50;
+  pointer-events: none;
+  /* Inheriting the tile transition would make the ghost lag the finger. */
+  transition: none;
+  background: var(--pick);
+  color: var(--pick-on);
+  box-shadow: 0 var(--lift) 0 var(--pick-edge);
+}
+
+/* On a short phone (iPhone SE and friends) twenty cards plus the chrome push
+   the cards below a 44px tap target. Reclaim the difference from the padding
+   and the gaps rather than letting the grid scroll, which would be unusable
+   against a running clock. */
+@media (max-height: 740px) {
+  .screen {
+    gap: 8px;
+    padding-block: 8px;
+  }
+
+  .cluster {
+    gap: 6px;
+    padding-block: 2px;
+  }
+
+  .btn--big {
+    padding-block: 12px;
+  }
+
+  .tray {
+    gap: 6px;
+  }
+
+  .tile {
+    padding-block: 6px;
+  }
+
+  .topbar {
+    padding-top: 4px;
+  }
+}
+
+/* One orchestrated moment: the recall grid dealing itself in. */
+@keyframes deal {
+  from {
+    opacity: 0;
+    transform: translateY(10px) scale(0.96);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+.grid--dealing .card {
+  animation: deal 260ms cubic-bezier(0.2, 0.8, 0.3, 1) both;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.001ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.001ms !important;
+  }
+}
