@@ -49,6 +49,10 @@
   --lift: 4px;
 
   --tap: 44px;
+
+  /* Answer tiles and the slots they drop into share one height, so a tile looks
+     like it already belongs in the slot it is heading for. */
+  --answer-height: clamp(46px, 6.6vh, 56px);
 }
 
 @media (prefers-color-scheme: dark) {
@@ -704,8 +708,12 @@ p {
   font-family: var(--display);
   font-variant-numeric: tabular-nums lining-nums;
   font-weight: 700;
+  line-height: 1;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
   min-width: 2.7em;
-  min-height: 1.45em;
+  height: var(--answer-height);
   padding: 0 0.2em;
   border: 3px dashed var(--slot-edge);
   border-radius: 10px;
@@ -765,11 +773,13 @@ p {
   font-variant-numeric: tabular-nums lining-nums;
   font-weight: 700;
   font-size: clamp(20px, 6.4vw, 28px);
+  line-height: 1;
   display: flex;
   align-items: center;
   justify-content: center;
   min-height: var(--tap);
-  padding: 10px 4px;
+  height: var(--answer-height);
+  padding: 4px;
   border: 0;
   border-radius: var(--radius);
   background: var(--card);
