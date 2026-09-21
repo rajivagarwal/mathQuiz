@@ -134,7 +134,11 @@ export function mapScreen(props: MapProps): Screen {
     const tileHeight = width * TILE_RATIO;
     const bottomTile = Math.floor(heightInTiles(lowest));
     const topTile = Math.ceil(heightInTiles(highest));
-    const tiles = Math.max(1, topTile - bottomTile);
+    let tiles = Math.max(1, topTile - bottomTile);
+    // The strip has to fill the scroller, or the page shows through beneath it.
+    // Whole tiles only: a part tile would break the repeat's alignment with the
+    // anchors, and the extra height lands above the top step, not below step one.
+    while (tiles * tileHeight < path.clientHeight) tiles += 1;
     const height = tiles * tileHeight;
 
     inner.style.height = `${height}px`;

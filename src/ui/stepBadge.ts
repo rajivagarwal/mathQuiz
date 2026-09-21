@@ -15,7 +15,7 @@ export type StepState = 'done' | 'current' | 'locked' | 'milestone';
 /** Geometry of one step, matching the design's 140 x 128 box. */
 const BADGE_CX = 70;
 const BADGE_CY = 56;
-const STAR_ARC_DEGREES = 104;
+const STAR_ARC_DEGREES = 112;
 
 export interface StepBadge {
   readonly step: number;
@@ -46,7 +46,8 @@ export function paintStepBadge(root: HTMLElement, badge: StepBadge): void {
   );
 
   // Five stars on an arc under the disc, each tilted along the curve.
-  const radius = state === 'current' ? 58 : 51;
+  // Radius grew with the stars: at the old 51 they would overlap each other.
+  const radius = state === 'current' ? 62 : 57;
   for (let i = 0; i < COINS_PER_STEP; i++) {
     const degrees = 90 - STAR_ARC_DEGREES / 2 + (STAR_ARC_DEGREES * i) / (COINS_PER_STEP - 1);
     const radians = (degrees * Math.PI) / 180;
