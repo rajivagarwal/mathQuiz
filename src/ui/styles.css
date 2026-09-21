@@ -15,6 +15,20 @@
 }
 
 @font-face {
+  font-family: 'Baloo 2';
+  src: url('./fonts/baloo2.woff2') format('woff2-variations');
+  font-weight: 600 800;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'Titan One';
+  src: url('./fonts/titan-one.woff2') format('woff2');
+  font-weight: 400;
+  font-display: swap;
+}
+
+@font-face {
   font-family: 'Instrument Sans';
   src: url('./fonts/instrument-sans.woff2') format('woff2-variations');
   font-weight: 400 700;
@@ -22,27 +36,45 @@
 }
 
 :root {
-  --paper: #e8ecf3;
-  --ink: #16183d;
-  --ink-soft: #5b6180;
-  --card: #ffffff;
-  --edge: #c0c8d9;
-  --rule: #d3daE6;
-  /* Empty drop slots. Deliberately its own token: --edge is a shadow colour and
-     goes almost black in the dark theme, which left the slots invisible. */
-  --slot-edge: #a9b3c9;
+  /* Forest floor: what the whole app sits on, matching the map's artwork. */
+  --forest: #1d3417;
 
-  --pick: #ff3e9a;
-  --pick-edge: #b5216a;
+  /* Parchment: every screen but the map is a panel of it, framed in wood. */
+  --paper: #fbe9c2;
+  --paper-deep: #efd29b;
+  --card: #fff6e0;
+  --ink: #4a2b0d;
+  --ink-soft: #8a6636;
+  --edge: #cfa96e;
+  --rule: #dcc094;
+  --slot-edge: #b99565;
+
+  --wood: #8c5620;
+  --wood-light: #c98f3e;
+  --wood-dark: #5d3714;
+  --wood-ink: #ffe7bb;
+
+  --pick: #d81b52;
+  --pick-light: #ff85ad;
+  --pick-edge: #96063c;
   --pick-on: #ffffff;
 
-  --true: #00a05b;
-  --true-edge: #007042;
-  --false: #e5342a;
-  --false-edge: #a41f18;
+  --true: #2f8f3e;
+  --true-edge: #1a5c25;
 
+  --coin: #f5a623;
+  --coin-edge: #c97a08;
+  --gem: #2196f3;
+  --gem-edge: #10547f;
+
+  --false: #d3392a;
+  --false-edge: #8e2016;
+
+  /* Bricolage stays for equations: it has tabular figures, which is what keeps
+     the operators and equals signs in columns. Baloo carries everything else. */
   --display: 'Bricolage Grotesque', ui-sans-serif, system-ui, sans-serif;
-  --ui: 'Instrument Sans', ui-sans-serif, system-ui, sans-serif;
+  --ui: 'Baloo 2', ui-rounded, system-ui, sans-serif;
+  --logo: 'Titan One', var(--ui);
 
   --gutter: 16px;
   --radius: 14px;
@@ -55,26 +87,6 @@
   --answer-height: clamp(46px, 6.6vh, 56px);
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --paper: #14162e;
-    --ink: #e9ecf6;
-    --ink-soft: #9aa2c4;
-    --card: #23264c;
-    --edge: #0a0b1c;
-    --rule: #33375f;
-    --slot-edge: #626a9c;
-
-    --pick: #ff58a8;
-    --pick-edge: #9d1459;
-    --pick-on: #1a0a12;
-
-    --true: #29c17d;
-    --true-edge: #0d6e44;
-    --false: #ff5f52;
-    --false-edge: #9c231b;
-  }
-}
 
 * {
   box-sizing: border-box;
@@ -98,7 +110,7 @@ body {
   inset: 0;
   width: 100%;
   overflow: hidden;
-  background: var(--paper);
+  background: radial-gradient(120% 90% at 50% 0%, #2b4a30, #0e1c10);
   color: var(--ink);
   font-family: var(--ui);
   font-size: 16px;
@@ -124,7 +136,14 @@ body {
   display: flex;
   flex-direction: column;
   gap: 14px;
-  padding-block: 14px;
+  padding: 16px 14px;
+  margin-block: 10px;
+  border-radius: 26px;
+  background: linear-gradient(180deg, var(--paper), var(--paper-deep));
+  box-shadow:
+    0 0 0 5px var(--wood),
+    0 0 0 9px var(--wood-light),
+    0 12px 26px rgba(0, 0, 0, 0.4);
 }
 
 .screen--scroll {
@@ -184,14 +203,18 @@ p {
 
 .btn {
   font: inherit;
-  font-weight: 600;
+  font-family: var(--ui);
+  font-weight: 700;
   min-height: var(--tap);
   padding: 12px 20px;
   border: 0;
   border-radius: var(--radius);
-  background: var(--card);
-  color: var(--ink);
-  box-shadow: 0 var(--lift) 0 var(--edge);
+  background: linear-gradient(175deg, #a9702f, #6f4118);
+  color: var(--wood-ink);
+  text-shadow: 0 2px 0 rgba(60, 30, 8, 0.7);
+  box-shadow:
+    0 0 0 4px var(--wood-light),
+    0 var(--lift) 0 var(--wood-dark);
   cursor: pointer;
   transition: transform 90ms ease, box-shadow 90ms ease;
   touch-action: manipulation;
@@ -204,23 +227,30 @@ p {
 }
 
 .btn:disabled {
-  background: var(--rule);
-  color: var(--ink-soft);
-  box-shadow: 0 var(--lift) 0 var(--edge);
+  background: linear-gradient(175deg, #c9b58c, #a48d61);
+  color: #6b5730;
+  text-shadow: none;
+  box-shadow:
+    0 0 0 4px #b89a68,
+    0 var(--lift) 0 #7d6338;
   cursor: default;
 }
 
 .btn--primary {
-  background: var(--pick);
+  background: linear-gradient(175deg, var(--pick-light), var(--pick));
   color: var(--pick-on);
-  box-shadow: 0 var(--lift) 0 var(--pick-edge);
+  text-shadow: 0 2px 0 var(--pick-edge);
+  box-shadow:
+    0 0 0 4px #ffd36b,
+    0 var(--lift) 0 var(--pick-edge);
   font-size: clamp(17px, 4.8vw, 20px);
-  font-family: var(--display);
-  font-weight: 700;
+  font-weight: 800;
 }
 
 .btn--primary:active:not(:disabled) {
-  box-shadow: 0 0 0 var(--pick-edge);
+  box-shadow:
+    0 0 0 4px #ffd36b,
+    0 0 0 var(--pick-edge);
 }
 
 .btn--big {
@@ -232,7 +262,8 @@ p {
   background: transparent;
   box-shadow: none;
   color: var(--ink-soft);
-  font-weight: 500;
+  text-shadow: none;
+  font-weight: 700;
   padding: 10px 12px;
 }
 
@@ -511,20 +542,20 @@ p {
 
 /* ---------- stats ---------- */
 
-.tiles {
+.stats {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 10px;
 }
 
-.tile {
+.stat {
   background: var(--card);
   border-radius: var(--radius);
   box-shadow: 0 var(--lift) 0 var(--edge);
   padding: 14px;
 }
 
-.tile__value {
+.stat__value {
   font-family: var(--display);
   font-weight: 700;
   font-size: 27px;
@@ -532,7 +563,7 @@ p {
   font-variant-numeric: tabular-nums;
 }
 
-.tile__label {
+.stat__label {
   color: var(--ink-soft);
   font-size: 13px;
 }
@@ -881,4 +912,433 @@ p {
     animation-iteration-count: 1 !important;
     transition-duration: 0.001ms !important;
   }
+}
+
+
+/* ---------- reward marks ---------- */
+
+.mark {
+  display: inline-block;
+  flex: none;
+}
+
+.mark--coin {
+  width: 19px;
+  height: 19px;
+  border-radius: 50%;
+  background: radial-gradient(circle at 34% 28%, #ffe9a1, #f5a623 60%, #c97a08);
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.3);
+}
+
+.mark--gem {
+  width: 18px;
+  height: 18px;
+  background: linear-gradient(170deg, #9be9ff, #2196f3);
+  clip-path: polygon(50% 0, 100% 38%, 50% 100%, 0 38%);
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.3);
+}
+
+/* ---------- the progress map ---------- */
+/* Ported from design/math-forest-map: colours, gradients, shadows and the star
+   arc come from that design. Only the endless-strip layout is ours -- the design
+   wraps a fixed 28 steps, this one keeps going. */
+
+.map {
+  position: relative;
+  flex: 1;
+  min-height: 0;
+  color: #ffffff;
+}
+
+/* The scenery bleeds through the app gutter to reach the screen edges. */
+.path {
+  position: absolute;
+  inset: 0 calc(var(--gutter) * -1);
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  -webkit-overflow-scrolling: touch;
+}
+
+.strip {
+  position: relative;
+  width: 100%;
+  background-repeat: repeat-y;
+  background-position: 0 0;
+}
+
+.map .banner {
+  position: absolute;
+  top: 104px;
+  left: 0;
+  right: 0;
+  z-index: 4;
+}
+
+.node {
+  position: absolute;
+  width: 140px;
+  height: 128px;
+  /* The tile scales with the screen, so the steps on it must too, or they
+     overlap once the anchor spacing drops below the node height. */
+  transform: translate(-50%, -50%) scale(var(--node-scale, 1));
+  padding: 0;
+  border: 0;
+  background: none;
+  cursor: default;
+  z-index: 2;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.node--current {
+  cursor: pointer;
+}
+
+.node__disc {
+  position: absolute;
+  left: 70px;
+  top: 56px;
+  transform: translate(-50%, -50%);
+  width: 80px;
+  height: 70px;
+  border-radius: 50%;
+  display: grid;
+  place-items: center;
+  font-family: var(--ui);
+  font-weight: 800;
+}
+
+.node__num {
+  font-size: 38px;
+  line-height: 1;
+  color: #ffffff;
+}
+
+.node--done .node__disc {
+  background: radial-gradient(120% 120% at 32% 22%, #ffd867, #f9a825 58%, #e07f10);
+  box-shadow:
+    0 0 0 7px #ffd36b,
+    0 0 0 11px #a76a18,
+    0 7px 12px rgba(20, 40, 10, 0.4),
+    inset 0 -6px 10px rgba(150, 70, 0, 0.45),
+    inset 0 7px 10px rgba(255, 255, 255, 0.5);
+}
+
+.node--done .node__num {
+  text-shadow: 0 2px 0 #b3670c, 0 -2px 0 #b3670c, 2px 0 0 #b3670c, -2px 0 0 #b3670c,
+    0 5px 6px rgba(0, 0, 0, 0.35);
+}
+
+.node--locked .node__disc {
+  background: radial-gradient(120% 120% at 32% 22%, #7fc7ff, #2b8fe0 58%, #1668ad);
+  box-shadow:
+    0 0 0 7px #ffd36b,
+    0 0 0 11px #a76a18,
+    0 7px 12px rgba(20, 40, 10, 0.4),
+    inset 0 -6px 10px rgba(6, 60, 110, 0.5),
+    inset 0 7px 10px rgba(255, 255, 255, 0.45);
+}
+
+.node--locked .node__num {
+  text-shadow: 0 2px 0 #10547f, 0 -2px 0 #10547f, 2px 0 0 #10547f, -2px 0 0 #10547f,
+    0 5px 6px rgba(0, 0, 0, 0.3);
+}
+
+.node--milestone .node__disc {
+  width: 84px;
+  height: 72px;
+  background: radial-gradient(120% 120% at 32% 22%, #d59bff, #9b35d8 58%, #6d1ba6);
+  box-shadow:
+    0 0 0 7px #ffd36b,
+    0 0 0 11px #a76a18,
+    0 0 24px 8px rgba(210, 150, 255, 0.4),
+    0 7px 12px rgba(20, 40, 10, 0.4),
+    inset 0 -6px 10px rgba(60, 0, 100, 0.5),
+    inset 0 7px 10px rgba(255, 255, 255, 0.45);
+}
+
+.node--milestone .node__num {
+  text-shadow: 0 2px 0 #5c1590, 0 -2px 0 #5c1590, 2px 0 0 #5c1590, -2px 0 0 #5c1590,
+    0 5px 6px rgba(0, 0, 0, 0.3);
+}
+
+.node--current .node__disc {
+  width: 96px;
+  height: 84px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  background: radial-gradient(120% 120% at 32% 22%, #ff85ad, #ea1e63 58%, #b8104a);
+  box-shadow:
+    0 0 0 8px #ffd96f,
+    0 0 0 12px #a76a18,
+    0 0 30px 10px rgba(255, 214, 90, 0.55),
+    0 8px 14px rgba(20, 40, 10, 0.42),
+    inset 0 -6px 10px rgba(130, 0, 45, 0.5),
+    inset 0 8px 12px rgba(255, 255, 255, 0.45);
+  animation: stepPulse 2.4s ease-in-out infinite;
+}
+
+.node__label {
+  font-size: 15px;
+  line-height: 1;
+  letter-spacing: 0.04em;
+  text-shadow: 0 2px 0 #96063c;
+}
+
+.node--current .node__num {
+  font-size: 40px;
+  line-height: 0.95;
+  text-shadow: 0 2px 0 #96063c, 0 -2px 0 #96063c, 2px 0 0 #96063c, -2px 0 0 #96063c,
+    0 5px 6px rgba(0, 0, 0, 0.3);
+}
+
+/* The centring translate has to ride along, or the pulse drops it. */
+@keyframes stepPulse {
+  0%,
+  100% {
+    transform: translate(-50%, -50%) scale(1);
+  }
+  50% {
+    transform: translate(-50%, -50%) scale(1.06);
+  }
+}
+
+.node__flag {
+  position: absolute;
+  left: 84px;
+  top: -26px;
+  width: 30px;
+  height: 44px;
+}
+
+.node__flag i {
+  position: absolute;
+  inset: 0 0 auto 0;
+  height: 20px;
+  background: linear-gradient(160deg, #ff4d7e, #d81b52);
+  clip-path: polygon(0 0, 100% 18%, 0 42%);
+  transform-origin: 0 0;
+  animation: flagWave 2.2s ease-in-out infinite;
+}
+
+.node__flag::after {
+  content: '';
+  position: absolute;
+  left: 0;
+  top: 16px;
+  width: 4px;
+  height: 24px;
+  border-radius: 2px;
+  background: linear-gradient(90deg, #f4d06a, #b9822a);
+}
+
+@keyframes flagWave {
+  0%,
+  100% {
+    transform: rotate(-3deg);
+  }
+  50% {
+    transform: rotate(4deg);
+  }
+}
+
+.star {
+  position: absolute;
+  width: 22px;
+  height: 22px;
+  display: grid;
+  place-items: center;
+  background: #7a4a12;
+  clip-path: polygon(50% 0%, 61% 35%, 98% 35%, 68% 57%, 79% 91%, 50% 70%, 21% 91%, 32% 57%,
+    2% 35%, 39% 35%);
+  filter: drop-shadow(0 2px 2px rgba(20, 40, 10, 0.45));
+}
+
+.star i {
+  width: 17px;
+  height: 17px;
+  background: linear-gradient(170deg, #b99565, #8a6636);
+  clip-path: inherit;
+}
+
+.star--on i {
+  background: linear-gradient(170deg, #fff0a8, #ffd43b 45%, #f59f00);
+}
+
+.hud {
+  position: absolute;
+  top: 8px;
+  left: 0;
+  right: 0;
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 10px;
+  z-index: 3;
+  pointer-events: none;
+}
+
+.sign {
+  position: relative;
+  display: inline-block;
+  filter: drop-shadow(0 8px 10px rgba(20, 40, 10, 0.4));
+  transform: scale(0.68);
+  transform-origin: top left;
+}
+
+.sign__board {
+  position: relative;
+  padding: 12px 22px 14px;
+  border-radius: 22px;
+  background: linear-gradient(175deg, #a9702f 0%, #8c5620 42%, #6f4118 100%);
+  box-shadow:
+    inset 0 3px 0 rgba(255, 220, 160, 0.45),
+    inset 0 -5px 0 rgba(60, 30, 8, 0.5),
+    0 0 0 5px #5d3714,
+    0 0 0 8px #a9702f;
+}
+
+.sign__board::before {
+  content: '';
+  position: absolute;
+  inset: 6px;
+  border-radius: 16px;
+  box-shadow: inset 0 0 0 2px rgba(90, 52, 20, 0.55);
+}
+
+.sign__stud {
+  position: absolute;
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: radial-gradient(circle at 35% 30%, #ffe6a8, #9a6a22);
+}
+
+.sign__stud--tl {
+  top: 10px;
+  left: 10px;
+}
+
+.sign__stud--br {
+  bottom: 10px;
+  right: 10px;
+}
+
+.sign__line {
+  font-family: var(--logo);
+  text-align: center;
+  letter-spacing: 0.01em;
+  text-shadow: 0 3px 0 #7a4410, -2px 0 0 #7a4410, 2px 0 0 #7a4410, 0 -2px 0 #7a4410,
+    0 6px 8px rgba(0, 0, 0, 0.35);
+}
+
+.sign__line--top {
+  font-size: 38px;
+  line-height: 0.92;
+  color: #ffd73f;
+}
+
+.sign__line--bottom {
+  font-size: 30px;
+  line-height: 1.05;
+  color: #fffdf6;
+}
+
+.sign__leaf {
+  position: absolute;
+}
+
+.sign__leaf--a {
+  top: -12px;
+  left: 6px;
+  width: 34px;
+  height: 26px;
+  border-radius: 70% 20% 60% 25%;
+  background: radial-gradient(120% 120% at 30% 25%, #8ed63f, #3f9412);
+  transform: rotate(-18deg);
+}
+
+.sign__leaf--b {
+  top: -14px;
+  right: 10px;
+  width: 30px;
+  height: 24px;
+  border-radius: 25% 65% 20% 70%;
+  background: radial-gradient(120% 120% at 30% 25%, #9ede52, #46a015);
+  transform: rotate(14deg);
+}
+
+.purse {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  margin-top: 8px;
+  padding: 7px 16px;
+  border-radius: 999px;
+  background: linear-gradient(175deg, #8c5620, #5f3813);
+  box-shadow:
+    0 0 0 4px #c98f3e,
+    0 6px 12px rgba(20, 40, 10, 0.45),
+    inset 0 3px 0 rgba(255, 220, 160, 0.3);
+  font-family: var(--ui);
+  font-weight: 800;
+  font-size: 17px;
+  color: #ffffff;
+  text-shadow: 0 2px 0 rgba(60, 30, 8, 0.7);
+}
+
+.purse__item {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+}
+
+.map__footer {
+  position: absolute;
+  bottom: 4px;
+  left: 0;
+  right: 0;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  z-index: 3;
+}
+
+.map__footer .btn--quiet {
+  font-family: var(--ui);
+  font-weight: 700;
+  color: #ffe7bb;
+  text-shadow: 0 2px 2px rgba(20, 40, 10, 0.7);
+}
+
+.reward {
+  display: block;
+  font-family: var(--display);
+  font-weight: 700;
+  font-size: clamp(16px, 4.6vw, 20px);
+}
+
+.reward--won {
+  color: var(--coin);
+}
+
+.reward--gem {
+  color: var(--gem);
+  font-size: clamp(15px, 4.2vw, 18px);
+}
+
+.reward__coins {
+  display: inline-flex;
+  align-items: center;
+  vertical-align: middle;
+  margin-left: 8px;
+  gap: 5px;
+  font-variant-numeric: tabular-nums;
+}
+
+.stat__value--reward {
+  display: flex;
+  align-items: center;
+  gap: 7px;
 }

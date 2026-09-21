@@ -1,0 +1,446 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link href="https://fonts.googleapis.com/css2?family=Baloo+2:wght@600;700;800&family=Titan+One&display=swap" rel="stylesheet" />
+<style>
+html,body { margin:0; padding:0; background:#1d3417; }
+a { color:#f9a825; } a:hover { color:#ffd43b; }
+@keyframes sheetIn { from { transform: translateY(26px); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
+</style>
+</helmet>
+<div style="height:100vh;min-height:560px;display:grid;place-items:center;background:radial-gradient(120% 90% at 50% 0%,#2b4a30,#0e1c10)">
+  <div style="position:relative;width:min(470px,100%);height:min(94vh,900px);border-radius:26px;overflow:hidden;box-shadow:0 26px 60px rgba(0,0,0,.5),inset 0 0 0 3px rgba(255,255,255,.08);background:#24402a">
+
+    <div data-frame="map" ref="{{ frameRef }}" style="position:absolute;inset:0;overflow:hidden;touch-action:none;cursor:grab" onPointerDown="{{ onDown }}" onPointerMove="{{ onMove }}" onPointerUp="{{ onUp }}" onPointerCancel="{{ onUp }}" onWheel="{{ onWheel }}">
+      <div data-strip="a" ref="{{ stripA }}" style="{{ stripStyle }}">
+        <sc-for list="{{ tiles }}" as="tile" hint-placeholder-count="4">
+          <img src="assets/forest-tile.jpg" alt="" draggable="false" style="{{ tile.style }}" />
+        </sc-for>
+        <sc-for list="{{ nodes }}" as="node" hint-placeholder-count="24">
+          <div style="{{ node.style }}">
+            <dc-import name="MapStep" number="{{ node.n }}" state="{{ node.state }}" earned="{{ node.earned }}" total="{{ node.total }}" on-select="{{ onSelect }}" hint-size="140px,128px"></dc-import>
+          </div>
+        </sc-for>
+      </div>
+      <div data-strip="b" ref="{{ stripB }}" style="{{ stripStyle }}">
+        <sc-for list="{{ tiles }}" as="tile" hint-placeholder-count="4">
+          <img src="assets/forest-tile.jpg" alt="" draggable="false" style="{{ tile.style }}" />
+        </sc-for>
+        <sc-for list="{{ nodes }}" as="node" hint-placeholder-count="24">
+          <div style="{{ node.style }}">
+            <dc-import name="MapStep" number="{{ node.n }}" state="{{ node.state }}" earned="{{ node.earned }}" total="{{ node.total }}" on-select="{{ onSelect }}" hint-size="140px,128px"></dc-import>
+          </div>
+        </sc-for>
+      </div>
+    </div>
+
+    <div style="position:absolute;top:14px;left:14px;pointer-events:none;transform-origin:top left;transform:scale(.82)">
+      <dc-import name="MathForestLogo" hint-size="230px,150px"></dc-import>
+    </div>
+
+    <div style="position:absolute;top:18px;right:14px;display:flex;align-items:center;gap:14px;padding:7px 16px;border-radius:999px;background:linear-gradient(175deg,#8c5620,#5f3813);box-shadow:0 0 0 4px #c98f3e,0 6px 12px rgba(20,40,10,.45),inset 0 3px 0 rgba(255,220,160,.3)">
+      <div style="display:flex;align-items:center;gap:7px">
+        <div style="width:18px;height:18px;background:linear-gradient(170deg,#9be9ff,#2196f3);clip-path:polygon(50% 0,100% 38%,50% 100%,0 38%);box-shadow:0 1px 2px rgba(0,0,0,.3)"></div>
+        <span style="font-family:'Baloo 2',system-ui;font-weight:800;font-size:17px;color:#fff;text-shadow:0 2px 0 rgba(60,30,8,.7)">{{ gems }}</span>
+      </div>
+      <div style="display:flex;align-items:center;gap:7px">
+        <div style="width:19px;height:19px;border-radius:50%;background:radial-gradient(circle at 34% 28%,#ffe9a1,#f5a623 60%,#c97a08);box-shadow:0 1px 2px rgba(0,0,0,.3)"></div>
+        <span style="font-family:'Baloo 2',system-ui;font-weight:800;font-size:17px;color:#fff;text-shadow:0 2px 0 rgba(60,30,8,.7)">{{ coins }}</span>
+      </div>
+    </div>
+
+    <div style="position:absolute;bottom:16px;left:16px;display:flex;align-items:center;gap:10px;padding:8px 15px;border-radius:999px;background:linear-gradient(175deg,#8c5620,#5f3813);box-shadow:0 0 0 4px #c98f3e,0 6px 12px rgba(20,40,10,.45)">
+      <span style="font-family:'Baloo 2',system-ui;font-weight:800;font-size:15px;color:#ffd73f;text-shadow:0 2px 0 rgba(60,30,8,.7)">{{ progressLabel }}</span>
+      <div style="width:82px;height:9px;border-radius:999px;background:rgba(30,15,4,.6);overflow:hidden;box-shadow:inset 0 1px 2px rgba(0,0,0,.5)">
+        <div style="{{ progressFill }}"></div>
+      </div>
+    </div>
+
+    <button type="button" onClick="{{ locate }}" style="position:absolute;bottom:16px;right:16px;width:48px;height:48px;border:0;border-radius:50%;cursor:pointer;display:grid;place-items:center;background:linear-gradient(175deg,#ff85ad,#d81b52);box-shadow:0 0 0 4px #ffd36b,0 6px 12px rgba(20,40,10,.45),inset 0 4px 8px rgba(255,255,255,.35)" style-hover="filter:brightness(1.08)" style-active="transform:translateY(2px)">
+      <span style="font-family:'Baloo 2',system-ui;font-weight:800;font-size:19px;color:#fff;text-shadow:0 2px 0 #96063c">Go</span>
+    </button>
+
+    <sc-if value="{{ sheetOpen }}" hint-placeholder-val="{{ false }}">
+      <div onClick="{{ closeSheet }}" style="position:absolute;inset:0;background:rgba(14,28,8,.55);backdrop-filter:blur(2px)"></div>
+      <div style="position:absolute;left:14px;right:14px;bottom:14px;padding:18px 18px 20px;border-radius:26px;background:linear-gradient(180deg,#fbe9c2,#efd29b);box-shadow:0 0 0 5px #8c5620,0 0 0 9px #c98f3e,0 -10px 30px rgba(0,0,0,.35);animation:sheetIn .22s ease-out">
+        <button type="button" onClick="{{ closeSheet }}" style="position:absolute;top:-8px;right:-4px;width:38px;height:38px;border:0;border-radius:50%;cursor:pointer;font-family:'Baloo 2',system-ui;font-weight:800;font-size:18px;color:#fff;background:linear-gradient(175deg,#a9702f,#6f4118);box-shadow:0 0 0 4px #c98f3e,0 4px 8px rgba(0,0,0,.35)" style-hover="filter:brightness(1.1)">✕</button>
+        <div style="display:flex;align-items:center;gap:16px">
+          <div style="flex:0 0 auto;transform:scale(.92);transform-origin:center">
+            <dc-import name="MapStep" number="{{ sheetNumber }}" state="{{ sheetState }}" earned="{{ sheetEarned }}" total="{{ starsTotal }}" hint-size="140px,128px"></dc-import>
+          </div>
+          <div style="min-width:0">
+            <div style="font-family:'Titan One',system-ui;font-size:23px;line-height:1.1;color:#4a2b0d;text-wrap:pretty">{{ sheetTitle }}</div>
+            <div style="font-family:'Baloo 2',system-ui;font-weight:600;font-size:15px;line-height:1.3;color:#7a5326;margin-top:4px;text-wrap:pretty">{{ sheetFocus }}</div>
+          </div>
+        </div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:16px">
+          <div style="padding:10px 12px;border-radius:16px;background:rgba(255,255,255,.55);box-shadow:inset 0 0 0 2px rgba(140,86,32,.3)">
+            <div style="font-family:'Baloo 2',system-ui;font-weight:700;font-size:12px;letter-spacing:.06em;text-transform:uppercase;color:#9a7132">Stars</div>
+            <div style="font-family:'Baloo 2',system-ui;font-weight:800;font-size:19px;color:#4a2b0d">{{ sheetStarsLabel }}</div>
+          </div>
+          <div style="padding:10px 12px;border-radius:16px;background:rgba(255,255,255,.55);box-shadow:inset 0 0 0 2px rgba(140,86,32,.3)">
+            <div style="font-family:'Baloo 2',system-ui;font-weight:700;font-size:12px;letter-spacing:.06em;text-transform:uppercase;color:#9a7132">Status</div>
+            <div style="font-family:'Baloo 2',system-ui;font-weight:800;font-size:19px;color:#4a2b0d">{{ sheetStatus }}</div>
+          </div>
+        </div>
+        <div style="display:flex;align-items:center;gap:10px;margin-top:14px;padding:11px 14px;border-radius:16px;background:rgba(255,255,255,.55);box-shadow:inset 0 0 0 2px rgba(140,86,32,.3)">
+          <div style="width:18px;height:18px;border-radius:50%;background:radial-gradient(circle at 34% 28%,#ffe9a1,#f5a623 60%,#c97a08)"></div>
+          <span style="font-family:'Baloo 2',system-ui;font-weight:700;font-size:15px;color:#6b4a20">{{ sheetReward }}</span>
+        </div>
+        <button type="button" onClick="{{ closeSheet }}" style="{{ sheetCtaStyle }}" style-hover="filter:brightness(1.07)" style-active="transform:translateY(2px)">{{ sheetCta }}</button>
+      </div>
+    </sc-if>
+
+  </div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props="{&quot;currentStep&quot;:{&quot;editor&quot;:&quot;int&quot;,&quot;default&quot;:3,&quot;min&quot;:1,&quot;max&quot;:28,&quot;tsType&quot;:&quot;number&quot;,&quot;section&quot;:&quot;Progress&quot;},&quot;starsPerStep&quot;:{&quot;editor&quot;:&quot;int&quot;,&quot;default&quot;:5,&quot;min&quot;:3,&quot;max&quot;:5,&quot;tsType&quot;:&quot;number&quot;,&quot;section&quot;:&quot;Progress&quot;},&quot;autoRotate&quot;:{&quot;editor&quot;:&quot;boolean&quot;,&quot;default&quot;:true,&quot;tsType&quot;:&quot;boolean&quot;,&quot;section&quot;:&quot;Motion&quot;},&quot;rotateSpeed&quot;:{&quot;editor&quot;:&quot;range&quot;,&quot;default&quot;:22,&quot;min&quot;:0,&quot;max&quot;:90,&quot;step&quot;:2,&quot;unit&quot;:&quot;px/s&quot;,&quot;tsType&quot;:&quot;number&quot;,&quot;section&quot;:&quot;Motion&quot;},&quot;gems&quot;:{&quot;editor&quot;:&quot;int&quot;,&quot;default&quot;:0,&quot;tsType&quot;:&quot;number&quot;,&quot;section&quot;:&quot;HUD&quot;},&quot;coins&quot;:{&quot;editor&quot;:&quot;int&quot;,&quot;default&quot;:9,&quot;tsType&quot;:&quot;number&quot;,&quot;section&quot;:&quot;HUD&quot;}}">
+const TOPICS = [
+  ['Counting Meadow', 'Count and match groups up to 10'],
+  ['Number Bridge', 'Order numbers and spot what comes next'],
+  ['Adding Acorns', 'Add within 10 with pictures'],
+  ['Taking Away', 'Subtract within 10 using the number line'],
+  ['Shape Grove', 'Name flat shapes and their corners'],
+  ['Owl Quiz Tower', 'Mixed review of everything so far'],
+  ['Tens Trail', 'Build numbers with tens and ones'],
+  ['Skip Count Creek', 'Count by 2s, 5s and 10s'],
+  ['Double Falls', 'Doubles and near doubles'],
+  ['Measure Path', 'Compare length and height'],
+  ['Coin Clearing', 'Count coins up to 50'],
+  ['Squirrel Challenge', 'Boss round: speed facts to 20'],
+  ['Place Value Pines', 'Hundreds, tens and ones'],
+  ['Carry Canyon', 'Two digit addition with regrouping'],
+  ['Borrow Brook', 'Two digit subtraction with regrouping'],
+  ['Pattern Thicket', 'Continue and describe patterns'],
+  ['Clock Hollow', 'Tell time to five minutes'],
+  ['Firefly Final', 'Boss round: mixed word problems'],
+  ['Times Table Ridge', 'Multiply by 2, 5 and 10'],
+  ['Sharing Springs', 'Divide into equal groups'],
+  ['Fraction Falls', 'Halves, thirds and quarters'],
+  ['Data Dell', 'Read picture graphs and tally charts'],
+  ['Puzzle Peak', 'Multi step reasoning problems'],
+  ['Forest Crown', 'Grand finale: everything you learned']
+];
+// path anchor points inside one map tile, top -> bottom (fractions of tile w/h)
+const ANCHORS = [
+  [0.45, 0.0714],
+  [0.58, 0.2143],
+  [0.43, 0.3571],
+  [0.56, 0.5000],
+  [0.44, 0.6429],
+  [0.58, 0.7857],
+  [0.45, 0.9286]
+];
+const TILES = 4;
+const PER_TILE = ANCHORS.length;
+const TILE_RATIO = 1280 / 616;
+
+class Component extends DCLogic {
+  state = { w: 0, h: 0, selected: null };
+  frameRef = React.createRef();
+  stripA = React.createRef();
+  stripB = React.createRef();
+  offset = 0;
+  vel = 0;
+  target = null;
+  pauseUntil = 0;
+  dragging = false;
+
+  get tileH() { return this.state.w * TILE_RATIO; }
+  get total() { return this.tileH * TILES; }
+
+  stepCount() { return TILES * PER_TILE; }
+  currentStep() {
+    const c = this.props.currentStep ?? 3;
+    return Math.min(Math.max(1, Math.round(c)), this.stepCount());
+  }
+  starsTotal() { return Math.min(Math.max(3, Math.round(this.props.starsPerStep ?? 5)), 5); }
+
+  stepState(n) {
+    const cur = this.currentStep();
+    if (n < cur) return 'done';
+    if (n === cur) return 'current';
+    return n % PER_TILE === 0 ? 'milestone' : 'locked';
+  }
+  stepEarned(n) {
+    if (n >= this.currentStep()) return 0;
+    const t = this.starsTotal();
+    return Math.min(t, 3 + ((n * 7) % 3));
+  }
+  // y position of a step in strip space (0 = top of the 4x strip)
+  stepY(n) {
+    const m = Math.floor((n - 1) / PER_TILE);          // 0 = bottom tile
+    const p = PER_TILE - 1 - ((n - 1) % PER_TILE);     // anchor index, bottom first
+    return (TILES - 1 - m) * this.tileH + ANCHORS[p][1] * this.tileH;
+  }
+
+  frameEl() {
+    return this.frameRef.current || document.querySelector('[data-frame="map"]');
+  }
+  measure = () => {
+    const el = this.frameEl();
+    if (!el) return;
+    const r = el.getBoundingClientRect();
+    if (!r.width) return;
+    if (Math.abs(r.width - this.state.w) > 0.5 || Math.abs(r.height - this.state.h) > 0.5) {
+      this.setState({ w: r.width, h: r.height });
+    }
+  };
+  boot() {
+    if (this.booted) return;
+    this.booted = true;
+    this.measure();
+    try {
+      this.ro = new ResizeObserver(this.measure);
+      const el = this.frameEl();
+      if (el) this.ro.observe(el);
+    } catch (e) { /* no ResizeObserver: tick re-measures every frame */ }
+    this.last = Date.now();
+    // rAF for smooth motion when visible + a timer so motion also advances
+    // in backgrounded/headless frames where rAF is paused
+    this.timer = setInterval(this.tick, 33);
+    this.onVis = () => { if (!document.hidden) { this.cssDead = false; this.watchOff = undefined; if (!this.manual) this.startAnim(); this.tick(); } };
+    document.addEventListener('visibilitychange', this.onVis);
+    this.frame = () => { this.tick(); this.raf = requestAnimationFrame(this.frame); };
+    this.raf = requestAnimationFrame(this.frame);
+  }
+  componentDidMount() { this.boot(); }
+  componentWillUnmount() {
+    if (this.ro) this.ro.disconnect();
+    if (this.timer) clearInterval(this.timer);
+    if (this.raf) cancelAnimationFrame(this.raf);
+    if (this.onVis) document.removeEventListener('visibilitychange', this.onVis);
+    this.booted = false;
+  }
+
+  wrap(v) { const t = this.total; return t ? ((v % t) + t) % t : 0; }
+
+  // refs on template holes don't always attach — resolve the strips from the DOM
+  strips() {
+    const root = this.frameRef.current;
+    let a = this.stripA.current, b = this.stripB.current;
+    if ((!a || !b) && root) {
+      a = a || root.querySelector('[data-strip="a"]');
+      b = b || root.querySelector('[data-strip="b"]');
+    }
+    return { a, b };
+  }
+
+  centerOffset(n) { return this.stepY(n) - this.state.h * 0.6; }
+
+  // --- idle rotation runs as a CSS animation so it never depends on JS timers
+  animCss(total) {
+    return '@keyframes mapLoopA{from{transform:translate3d(0,0,0)}to{transform:translate3d(0,-' + total + 'px,0)}}' +
+           '@keyframes mapLoopB{from{transform:translate3d(0,' + total + 'px,0)}to{transform:translate3d(0,0,0)}}';
+  }
+  startAnim() {
+    const total = this.total, sp = this.props.rotateSpeed ?? 22;
+    const on = (this.props.autoRotate ?? true) && sp > 0;
+    const strips = this.strips();
+    if (!total || !strips.a || !strips.b) return;
+    if (!on) { this.apply(); return; }
+    if (!this.styleEl) {
+      this.styleEl = document.createElement('style');
+      document.head.appendChild(this.styleEl);
+    }
+    const css = this.animCss(total);
+    if (this.styleEl.textContent !== css) this.styleEl.textContent = css;
+    const dur = total / sp;
+    const delay = -(this.offset / sp);
+    strips.a.style.transform = '';
+    strips.b.style.transform = '';
+    strips.a.style.animation = 'mapLoopA ' + dur + 's linear infinite';
+    strips.b.style.animation = 'mapLoopB ' + dur + 's linear infinite';
+    strips.a.style.animationDelay = delay + 's';
+    strips.b.style.animationDelay = delay + 's';
+    this.animOn = true;
+    this.manual = false;
+    this.animTotal = total;
+    this.animSp = sp;
+  }
+  readOffset() {
+    const a = this.strips().a;
+    if (!a) return this.offset;
+    const tr = getComputedStyle(a).transform;
+    if (tr && tr !== 'none') {
+      const nums = tr.replace(/^matrix3?d?\(/, '').replace(/\)$/, '').split(',').map(Number);
+      const ty = nums.length === 16 ? nums[13] : nums[5];
+      if (!isNaN(ty)) return this.wrap(-ty);
+    }
+    return this.offset;
+  }
+  goManual() {
+    if (this.animOn) {
+      this.offset = this.readOffset();
+      const strips = this.strips();
+      if (strips.a) { strips.a.style.animation = 'none'; }
+      if (strips.b) { strips.b.style.animation = 'none'; }
+      this.animOn = false;
+    }
+    this.manual = true;
+    this.apply();
+  }
+  apply() {
+    const o = this.offset, t = this.total;
+    const strips = this.strips();
+    if (strips.a) strips.a.style.transform = 'translate3d(0,' + (-o) + 'px,0)';
+    if (strips.b) strips.b.style.transform = 'translate3d(0,' + (t - o) + 'px,0)';
+  }
+
+  tick = () => {
+    const now = Date.now();
+    const dt = Math.min(0.3, (now - this.last) / 1000);
+    this.last = now;
+    this.measure();
+    if (!this.state.w || !this.total) return;
+
+    if (!this.inited) {
+      this.offset = this.wrap(this.centerOffset(this.currentStep()));
+      this.inited = true;
+      this.startAnim();
+      return;
+    }
+    if (this.animOn) {
+      // CSS animation owns the transform; keep our offset in sync and bail out
+      this.offset = this.readOffset();
+      const sp = this.props.rotateSpeed ?? 22;
+      const on = (this.props.autoRotate ?? true) && sp > 0;
+      if (!on) { this.goManual(); return; }
+      if (this.animTotal !== this.total || this.animSp !== sp) { this.startAnim(); return; }
+      // if CSS animations are suspended (background/headless frame), drive it in JS instead
+      if (this.watchOff === undefined || Math.abs(this.offset - this.watchOff) > 0.5) {
+        this.watchOff = this.offset; this.watchT = now;
+      } else if (now - this.watchT > 1400) {
+        this.cssDead = true; this.goManual();
+      }
+      if (this.state.selected !== null) this.goManual();
+      return;
+    }
+
+    if (this.target !== null) {
+      let d = this.target - this.offset;
+      const t = this.total;
+      if (d > t / 2) d -= t; else if (d < -t / 2) d += t;
+      if (Math.abs(d) < 0.6) { this.offset = this.target; this.target = null; this.vel = 0; }
+      else this.offset += d * Math.min(1, dt * 7);
+    } else if (!this.dragging) {
+      if (Math.abs(this.vel) > 2) { this.offset += this.vel * dt; this.vel *= Math.pow(0.0025, dt); }
+      else {
+        this.vel = 0;
+        if (this.state.selected === null && now > this.pauseUntil) {
+          const sp = this.props.rotateSpeed ?? 22;
+          const on = (this.props.autoRotate ?? true) && sp > 0;
+          if (!on) return;
+          if (this.cssDead) this.offset += sp * dt;
+          else { this.startAnim(); return; }
+        }
+      }
+    }
+    this.offset = this.wrap(this.offset);
+    this.apply();
+  };
+
+  onDown = (e) => {
+    this.goManual();
+    this.dragging = true;
+    this.target = null;
+    this.lastY = e.clientY;
+    this.lastT = Date.now();
+    this.moved = 0;
+    if (e.currentTarget.setPointerCapture) e.currentTarget.setPointerCapture(e.pointerId);
+  };
+  onMove = (e) => {
+    if (!this.dragging) return;
+    const dy = e.clientY - this.lastY;
+    const now = Date.now();
+    const dt = Math.max(8, now - this.lastT) / 1000;
+    this.offset = this.wrap(this.offset - dy);
+    this.vel = Math.max(-2600, Math.min(2600, -dy / dt));
+    this.moved += Math.abs(dy);
+    this.lastY = e.clientY;
+    this.lastT = now;
+    this.apply();
+  };
+  onUp = () => {
+    if (!this.dragging) return;
+    this.dragging = false;
+    this.pauseUntil = Date.now() + 3200;
+  };
+  onWheel = (e) => {
+    e.preventDefault();
+    this.goManual();
+    this.target = null;
+    this.offset = this.wrap(this.offset + e.deltaY);
+    this.vel = 0;
+    this.pauseUntil = Date.now() + 2600;
+    this.apply();
+  };
+
+  renderVals() {
+    if (!this.booted) { try { this.boot(); } catch (e) {} }
+    const w = this.state.w, tileH = this.tileH, total = this.total;
+    const tiles = [];
+    for (let i = 0; i < TILES; i++) {
+      tiles.push({ style: { position: 'absolute', left: 0, top: i * tileH + 'px', width: '100%', height: tileH + 'px', display: 'block', userSelect: 'none', pointerEvents: 'none' } });
+    }
+    const starsTotal = this.starsTotal();
+    const nodes = [];
+    for (let n = 1; n <= this.stepCount(); n++) {
+      const p = PER_TILE - 1 - ((n - 1) % PER_TILE);
+      nodes.push({
+        n, state: this.stepState(n), earned: this.stepEarned(n), total: starsTotal,
+        style: { position: 'absolute', left: ANCHORS[p][0] * w + 'px', top: this.stepY(n) + 'px', transform: 'translate(-50%,-50%) scale(' + Math.max(0.46, Math.min(1, (w / 616) * 0.78)).toFixed(3) + ')' }
+      });
+    }
+
+    const sel = this.state.selected;
+    const cur = this.currentStep();
+    const topic = sel ? TOPICS[(sel - 1) % TOPICS.length] : ['', ''];
+    const selState = sel ? this.stepState(sel) : 'locked';
+    const selEarned = sel ? this.stepEarned(sel) : 0;
+    const doneCount = cur - 1;
+
+    return {
+      frameRef: this.frameRef, stripA: this.stripA, stripB: this.stripB,
+      stripStyle: { position: 'absolute', left: 0, top: 0, width: '100%', height: total + 'px', willChange: 'transform' },
+      tiles, nodes, starsTotal,
+      gems: this.props.gems ?? 0,
+      coins: this.props.coins ?? 9,
+      progressLabel: doneCount + ' / ' + this.stepCount(),
+      progressFill: { width: Math.round((doneCount / this.stepCount()) * 100) + '%', height: '100%', borderRadius: '999px', background: 'linear-gradient(90deg,#ffe066,#f5a623)' },
+      onDown: this.onDown, onMove: this.onMove, onUp: this.onUp, onWheel: this.onWheel,
+      onSelect: (n) => { this.goManual(); this.target = this.wrap(this.centerOffset(n)); this.vel = 0; this.setState({ selected: n }); },
+      locate: () => { this.goManual(); this.target = this.wrap(this.centerOffset(cur)); this.vel = 0; this.pauseUntil = Date.now() + 4000; },
+      closeSheet: () => { this.pauseUntil = Date.now() + 3200; this.setState({ selected: null }); },
+      sheetOpen: sel !== null,
+      sheetNumber: sel || 1,
+      sheetState: selState,
+      sheetEarned: selEarned,
+      sheetTitle: topic[0],
+      sheetFocus: topic[1],
+      sheetStarsLabel: selState === 'done' ? selEarned + ' of ' + starsTotal + ' ★' : 'up to ' + starsTotal + ' ★',
+      sheetStatus: selState === 'done' ? 'Complete' : selState === 'current' ? 'Playing now' : 'Locked',
+      sheetReward: selState === 'locked' || selState === 'milestone' ? 'Unlocks after step ' + (sel - 1) : '+10 coins and up to ' + starsTotal + ' stars',
+      sheetCta: selState === 'done' ? 'Replay step ' + sel : selState === 'current' ? 'Start step ' + sel : 'Locked for now',
+      sheetCtaStyle: {
+        width: '100%', marginTop: '14px', padding: '14px 18px', border: 0, borderRadius: '18px',
+        fontFamily: "'Baloo 2',system-ui", fontWeight: 800, fontSize: '19px', color: '#fff',
+        cursor: selState === 'locked' || selState === 'milestone' ? 'not-allowed' : 'pointer',
+        background: selState === 'locked' || selState === 'milestone' ? 'linear-gradient(175deg,#b3a58e,#8a7b64)' : 'linear-gradient(175deg,#8ed63f,#3f9412)',
+        boxShadow: '0 0 0 4px #c98f3e,0 6px 0 rgba(60,30,8,.35),0 8px 14px rgba(20,40,10,.3)',
+        textShadow: '0 2px 0 rgba(40,70,10,.5)'
+      }
+    };
+  }
+}
+</script>
+</body>
+</html>

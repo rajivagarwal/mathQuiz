@@ -1,0 +1,103 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link href="https://fonts.googleapis.com/css2?family=Baloo+2:wght@600;800&display=swap" rel="stylesheet" />
+<style>
+@keyframes stepPulse { 0%,100% { transform: scale(1); } 50% { transform: scale(1.06); } }
+@keyframes flagWave { 0%,100% { transform: rotate(-3deg); } 50% { transform: rotate(4deg); } }
+</style>
+</helmet>
+<div style="position:relative;width:140px;height:128px;cursor:pointer;user-select:none;-webkit-tap-highlight-color:transparent" onClick="{{ select }}">
+  <sc-if value="{{ isMilestone }}" hint-placeholder-val="{{ false }}">
+    <div style="position:absolute;left:84px;top:-26px;display:flex;flex-direction:column;align-items:flex-start">
+      <div style="width:30px;height:20px;background:linear-gradient(160deg,#ff4d7e,#d81b52);clip-path:polygon(0 0,100% 18%,0 42%);animation:flagWave 2.2s ease-in-out infinite;transform-origin:0 0"></div>
+      <div style="width:4px;height:24px;background:linear-gradient(90deg,#f4d06a,#b9822a);border-radius:2px;margin-top:-4px"></div>
+    </div>
+  </sc-if>
+  <sc-if value="{{ isDone }}" hint-placeholder-val="{{ false }}">
+    <div style="position:absolute;left:70px;top:56px;transform:translate(-50%,-50%);width:80px;height:70px;border-radius:50%;display:grid;place-items:center;background:radial-gradient(120% 120% at 32% 22%,#ffd867,#f9a825 58%,#e07f10);box-shadow:0 0 0 7px #ffd36b,0 0 0 11px #a76a18,0 7px 12px rgba(20,40,10,.4),inset 0 -6px 10px rgba(150,70,0,.45),inset 0 7px 10px rgba(255,255,255,.5)">
+      <span style="font-family:'Baloo 2',system-ui;font-weight:800;font-size:38px;line-height:1;color:#fff;text-shadow:0 2px 0 #b3670c,0 -2px 0 #b3670c,2px 0 0 #b3670c,-2px 0 0 #b3670c,0 5px 6px rgba(0,0,0,.35)">{{ number }}</span>
+    </div>
+  </sc-if>
+  <sc-if value="{{ isCurrent }}" hint-placeholder-val="{{ true }}">
+    <div style="position:absolute;left:70px;top:56px;transform:translate(-50%,-50%);width:96px;height:84px">
+    <div style="width:96px;height:84px;border-radius:50%;display:flex;flex-direction:column;align-items:center;justify-content:center;background:radial-gradient(120% 120% at 32% 22%,#ff85ad,#ea1e63 58%,#b8104a);box-shadow:0 0 0 8px #ffd96f,0 0 0 12px #a76a18,0 0 30px 10px rgba(255,214,90,.55),0 8px 14px rgba(20,40,10,.42),inset 0 -6px 10px rgba(130,0,45,.5),inset 0 8px 12px rgba(255,255,255,.45);animation:stepPulse 2.4s ease-in-out infinite">
+      <span style="font-family:'Baloo 2',system-ui;font-weight:800;font-size:15px;line-height:1;letter-spacing:.04em;color:#fff;text-shadow:0 2px 0 #96063c">Step</span>
+      <span style="font-family:'Baloo 2',system-ui;font-weight:800;font-size:40px;line-height:.95;color:#fff;text-shadow:0 2px 0 #96063c,0 -2px 0 #96063c,2px 0 0 #96063c,-2px 0 0 #96063c,0 5px 6px rgba(0,0,0,.3)">{{ number }}</span>
+    </div>
+    </div>
+  </sc-if>
+  <sc-if value="{{ isLocked }}" hint-placeholder-val="{{ false }}">
+    <div style="position:absolute;left:70px;top:56px;transform:translate(-50%,-50%);width:80px;height:70px;border-radius:50%;display:grid;place-items:center;background:radial-gradient(120% 120% at 32% 22%,#7fc7ff,#2b8fe0 58%,#1668ad);box-shadow:0 0 0 7px #ffd36b,0 0 0 11px #a76a18,0 7px 12px rgba(20,40,10,.4),inset 0 -6px 10px rgba(6,60,110,.5),inset 0 7px 10px rgba(255,255,255,.45)">
+      <span style="font-family:'Baloo 2',system-ui;font-weight:800;font-size:38px;line-height:1;color:#fff;text-shadow:0 2px 0 #10547f,0 -2px 0 #10547f,2px 0 0 #10547f,-2px 0 0 #10547f,0 5px 6px rgba(0,0,0,.3)">{{ number }}</span>
+    </div>
+  </sc-if>
+  <sc-if value="{{ isMilestone }}" hint-placeholder-val="{{ false }}">
+    <div style="position:absolute;left:70px;top:56px;transform:translate(-50%,-50%);width:84px;height:72px;border-radius:50%;display:grid;place-items:center;background:radial-gradient(120% 120% at 32% 22%,#d59bff,#9b35d8 58%,#6d1ba6);box-shadow:0 0 0 7px #ffd36b,0 0 0 11px #a76a18,0 0 24px 8px rgba(210,150,255,.4),0 7px 12px rgba(20,40,10,.4),inset 0 -6px 10px rgba(60,0,100,.5),inset 0 7px 10px rgba(255,255,255,.45)">
+      <span style="font-family:'Baloo 2',system-ui;font-weight:800;font-size:38px;line-height:1;color:#fff;text-shadow:0 2px 0 #5c1590,0 -2px 0 #5c1590,2px 0 0 #5c1590,-2px 0 0 #5c1590,0 5px 6px rgba(0,0,0,.3)">{{ number }}</span>
+    </div>
+  </sc-if>
+  <sc-for list="{{ stars }}" as="star" hint-placeholder-count="5">
+    <div style="{{ star.style }}">
+      <div style="width:22px;height:22px;display:grid;place-items:center;background:#7a4a12;clip-path:polygon(50% 0%,61% 35%,98% 35%,68% 57%,79% 91%,50% 70%,21% 91%,32% 57%,2% 35%,39% 35%)">
+        <sc-if value="{{ star.on }}" hint-placeholder-val="{{ true }}">
+          <div style="width:17px;height:17px;background:linear-gradient(170deg,#fff0a8,#ffd43b 45%,#f59f00);clip-path:polygon(50% 0%,61% 35%,98% 35%,68% 57%,79% 91%,50% 70%,21% 91%,32% 57%,2% 35%,39% 35%)"></div>
+        </sc-if>
+        <sc-if value="{{ star.off }}" hint-placeholder-val="{{ false }}">
+          <div style="width:17px;height:17px;background:linear-gradient(170deg,#b99565,#8a6636);clip-path:polygon(50% 0%,61% 35%,98% 35%,68% 57%,79% 91%,50% 70%,21% 91%,32% 57%,2% 35%,39% 35%)"></div>
+        </sc-if>
+      </div>
+    </div>
+  </sc-for>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props="{&quot;$preview&quot;:{&quot;width&quot;:220,&quot;height&quot;:170},&quot;number&quot;:{&quot;editor&quot;:&quot;int&quot;,&quot;default&quot;:3,&quot;tsType&quot;:&quot;number&quot;},&quot;state&quot;:{&quot;editor&quot;:&quot;enum&quot;,&quot;options&quot;:[&quot;done&quot;,&quot;current&quot;,&quot;locked&quot;,&quot;milestone&quot;],&quot;default&quot;:&quot;current&quot;,&quot;tsType&quot;:&quot;string&quot;},&quot;earned&quot;:{&quot;editor&quot;:&quot;int&quot;,&quot;default&quot;:3,&quot;min&quot;:0,&quot;max&quot;:5,&quot;tsType&quot;:&quot;number&quot;},&quot;total&quot;:{&quot;editor&quot;:&quot;int&quot;,&quot;default&quot;:5,&quot;min&quot;:3,&quot;max&quot;:5,&quot;tsType&quot;:&quot;number&quot;},&quot;onSelect&quot;:{&quot;editor&quot;:null,&quot;tsType&quot;:&quot;(n: number) =&gt; void&quot;}}">
+class Component extends DCLogic {
+  renderVals() {
+    const total = this.props.total ?? 5;
+    const earned = this.props.earned ?? 0;
+    const state = this.props.state ?? 'locked';
+    const isCurrent = state === 'current';
+    const cx = 70, cy = 56;                 // badge centre inside the 140x128 box
+    const r = isCurrent ? 58 : 51;          // arc radius: sits just outside the gold ring
+    const spread = 104;                     // degrees of arc the stars occupy
+    const stars = [];
+    for (let i = 0; i < total; i++) {
+      const a = (90 - spread / 2 + (total > 1 ? (spread * i) / (total - 1) : 0)) * Math.PI / 180;
+      const x = cx + Math.cos(a) * r;
+      const y = cy + Math.sin(a) * r;
+      const rot = (a * 180 / Math.PI) - 90; // tilt each star along the curve
+      stars.push({
+        on: i < earned,
+        off: i >= earned,
+        style: {
+          position: 'absolute',
+          left: x + 'px',
+          top: y + 'px',
+          transform: 'translate(-50%,-50%) rotate(' + rot.toFixed(1) + 'deg)',
+          filter: 'drop-shadow(0 2px 2px rgba(20,40,10,.45))'
+        }
+      });
+    }
+    return {
+      number: this.props.number ?? 1,
+      stars,
+      isDone: state === 'done',
+      isCurrent,
+      isLocked: state === 'locked',
+      isMilestone: state === 'milestone',
+      select: () => { if (this.props.onSelect) this.props.onSelect(this.props.number); }
+    };
+  }
+}
+</script>
+</body>
+</html>

@@ -266,3 +266,36 @@ describe('shipped defaults', () => {
     expect(createStore(storage).getSettings().timed).toBe(true);
   });
 });
+
+describe('the journey', () => {
+  it('starts empty', () => {
+    expect(createStore(createMemoryStorage()).getJourney().stepCoins).toEqual([]);
+  });
+
+  it('round-trips through storage', () => {
+    const storage = createMemoryStorage();
+    createStore(storage).saveJourney({ stepCoins: [5, 3, 1] });
+    expect(createStore(storage).getJourney().stepCoins).toEqual([5, 3, 1]);
+  });
+
+  it('ignores a corrupt blob rather than throwing', () => {
+    const storage = createMemoryStorage();
+    storage.setItem(`${KEY_PREFIX}journey`, 'not json');
+    expect(createStore(storage).getJourney().stepCoins).toEqual([]);
+  });
+
+  it('ignores a journey whose steps are not a list', () => {
+    const storage = createMemoryStorage();
+    storage.setItem(`${KEY_PREFIX}journey`, JSON.stringify({ stepCoins: 'lots' }));
+    expect(createStore(storage).getJourney().stepCoins).toEqual([]);
+  });
+
+  it('is erased along with everything else', () => {
+    const storage = createMemoryStorage();
+    const store = createStore(storage);
+    store.saveJourney({ stepCoins: [5, 5] });
+    store.clearAll();
+    expect(store.getJourney().stepCoins).toEqual([]);
+    expect(createStore(storage).getJourney().stepCoins).toEqual([]);
+  });
+});

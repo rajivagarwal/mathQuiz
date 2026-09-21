@@ -1,23 +1,39 @@
+import { completedSteps, diamonds, totalCoins, type Journey } from '../../domain/journey';
 import type { KidProgress } from '../../domain/stats';
+import { mark } from '../marks';
 import { el, screen, type Screen } from '../dom';
 import { plural } from '../format';
 
 export interface ProgressProps {
   readonly progress: KidProgress;
+  readonly journey: Journey;
   readonly onBack: () => void;
 }
 
-function tile(value: string, label: string): HTMLElement {
+function rewardTile(glyph: HTMLElement, value: string, label: string): HTMLElement {
   return el('div', {
-    class: 'tile',
+    class: 'stat',
     children: [
-      el('div', { class: 'tile__value', text: value }),
-      el('div', { class: 'tile__label', text: label }),
+      el('div', {
+        class: 'stat__value stat__value--reward',
+        children: [glyph, el('span', { text: value })],
+      }),
+      el('div', { class: 'stat__label', text: label }),
     ],
   });
 }
 
-export function progressScreen({ progress, onBack }: ProgressProps): Screen {
+function tile(value: string, label: string): HTMLElement {
+  return el('div', {
+    class: 'stat',
+    children: [
+      el('div', { class: 'stat__value', text: value }),
+      el('div', { class: 'stat__label', text: label }),
+    ],
+  });
+}
+
+export function progressScreen({ progress, journey, onBack }: ProgressProps): Screen {
   if (progress.totalRounds === 0) {
     return {
       element: screen('screen', [
@@ -47,8 +63,11 @@ export function progressScreen({ progress, onBack }: ProgressProps): Screen {
     el('h2', { text: 'My progress' }),
 
     el('div', {
-      class: 'tiles',
+      class: 'stats',
       children: [
+        rewardTile(mark('gem'), String(diamonds(journey)), 'diamonds'),
+        rewardTile(mark('coin'), String(totalCoins(journey)), 'gold coins'),
+        tile(String(completedSteps(journey)), 'steps cleared'),
         tile(String(progress.perfectToday), 'perfect rounds today'),
         tile(String(progress.roundsToday), 'rounds today'),
         tile(String(progress.currentPerfectStreak), 'perfect in a row now'),

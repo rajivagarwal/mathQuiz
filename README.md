@@ -7,6 +7,47 @@ to prove they stuck. Every wrong answer on offer is a near miss — an adjacent
 multiple, an off-by-one, a botched borrow — so getting one right means having
 actually remembered it, not reasoning it out.
 
+## The map
+
+Opening the app lands on a path of steps. A step is cleared by getting all five
+facts right in one go, which wins up to five gold coins — one fewer for every
+retry, never below one. Every fifth step also wins a diamond, and the header
+counts both.
+
+Anything short of a clean sweep brings the same five facts back. They are not
+tied to the step: the step is just where the child is, and a fresh session
+deals a fresh hand at full price. That also means closing and reopening the app
+is the way past a step that will not fall — worth knowing, since nothing else
+lets a child move on.
+
+Only the coins won at each finished step are stored. The step reached, the
+total and the diamonds all follow from that list. The five facts being worked
+on and the attempt count are deliberately held in memory alone, which is what
+makes a relaunch reset the price.
+
+## The look
+
+The map and the whole app are built from the design in `design/math-forest-map`,
+a Claude Design export: the forest tile, the level badges with their star arcs,
+the carved sign and the wooden HUD all come from there. The app has one fixed
+identity rather than following the device's light or dark theme, because a
+painted backdrop cannot invert.
+
+Screens other than the map are parchment panels framed in wood, sitting on the
+forest floor. Two typefaces carry it: Baloo 2 for everything the child reads,
+and Bricolage Grotesque for the equations alone, because it has tabular figures
+and that is what keeps the operators and equals signs in columns.
+
+### Replacing the scenery
+
+`public/scenery/forest-tile.jpg` is the map's backdrop. A replacement must be:
+
+- **Scenery only** — the steps are positioned in code from anchor points, so a
+  painted path would drift away from them within a screen.
+- **Vertically tileable**, with the same 616 x 1280 proportions. Step positions
+  are fractions of a tile, so changing the ratio moves every step off the trail.
+- **Clear down the middle**, where the steps sit.
+
 ## Two game types
 
 The child picks one on the home screen. Both study the same five facts and both
@@ -42,7 +83,7 @@ first load.
 ```sh
 npm install
 npm run dev       # development server
-npm test          # 174 unit tests over the domain and storage layers
+npm test          # 206 unit tests over the domain and storage layers
 npm run build     # type check, then production bundle into dist/
 npm run preview   # serve the production build at /mathQuiz/
 ```

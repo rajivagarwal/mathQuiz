@@ -37,10 +37,10 @@ function pinField(placeholder: string): HTMLInputElement {
 
 function tile(value: string, label: string): HTMLElement {
   return el('div', {
-    class: 'tile',
+    class: 'stat',
     children: [
-      el('div', { class: 'tile__value', text: value }),
-      el('div', { class: 'tile__label', text: label }),
+      el('div', { class: 'stat__value', text: value }),
+      el('div', { class: 'stat__label', text: label }),
     ],
   });
 }
@@ -294,7 +294,7 @@ function unlocked(props: ParentProps): Screen {
       el('h2', { text: 'Parents' }),
 
       el('div', {
-        class: 'tiles',
+        class: 'stats',
         children: [
           tile(String(stats.totalRounds), 'rounds played'),
           tile(stats.totalAttempts ? percent(stats.overallAccuracy) : '—', 'facts right'),

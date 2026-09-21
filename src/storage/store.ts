@@ -11,6 +11,7 @@
  *   different version of the app, so every read validates and falls back.
  */
 
+import type { Journey } from '../domain/journey';
 import type { FactRecord } from '../domain/scheduler';
 
 export const SCHEMA_VERSION = 1;
@@ -25,6 +26,7 @@ const KEY = {
   rounds: `${KEY_PREFIX}rounds`,
   settings: `${KEY_PREFIX}settings`,
   parent: `${KEY_PREFIX}parent`,
+  journey: `${KEY_PREFIX}journey`,
 } as const;
 
 /** The slice of the DOM Storage interface this app uses. */
@@ -97,6 +99,8 @@ export interface Store {
   appendRound(entry: RoundLogEntry): void;
   getParentLock(): ParentLockRecord | null;
   saveParentLock(record: ParentLockRecord): void;
+  getJourney(): Journey;
+  saveJourney(journey: Journey): void;
   clearAll(): void;
 }
 
@@ -216,6 +220,13 @@ export function createStore(storage?: StorageLike): Store {
 
     getParentLock: () => parseJson<ParentLockRecord | null>(readRaw(KEY.parent), null),
     saveParentLock: (record) => writeRaw(KEY.parent, JSON.stringify(record)),
+
+    getJourney: () => {
+      const stored = parseJson<Journey>(readRaw(KEY.journey), { stepCoins: [] });
+      // A journey whose steps are not a list would break every derived count.
+      return Array.isArray(stored?.stepCoins) ? stored : { stepCoins: [] };
+    },
+    saveJourney: (journey) => writeRaw(KEY.journey, JSON.stringify(journey)),
 
     clearAll: () => {
       memory.clear();

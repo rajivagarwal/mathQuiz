@@ -1,39 +1,34 @@
 /**
- * Wiring and the round state machine: home -> study -> recall -> result.
+ * Wiring, and the step machine behind the progress map.
  *
- * Two game types share that shape. "Find the five" hides the studied equations
- * among near-miss fakes; "Drag the answers" takes the answers away and hands
- * them back as loose tiles. Both study the same five facts and both feed the
- * same spaced-repetition records, so the choice changes how a round is played,
- * not what it teaches.
+ * A step is cleared by getting all five facts right in one go. Anything less
+ * and the same five come back, worth one coin less, until they are cleared.
  *
- * Screens are plain functions returning DOM. This module owns all the state
- * they read and every effect they cause, so a screen never touches storage.
+ * The five facts and the attempt count live here in memory and are never
+ * stored, which is what makes closing the app deal a fresh hand at full price.
+ * The map itself keeps only the coins won at each finished step.
  */
 
 import { biometricsAvailable, createParentLock } from './auth/parentLock';
 import { factId, type Fact } from './domain/facts';
+import { buildDragRound, gradeDragRound, type DragResult, type DragRound } from './domain/dragRound';
 import {
-  buildDragRound,
-  gradeDragRound,
-  type DragResult,
-  type DragRound,
-} from './domain/dragRound';
-import {
-  FACTS_PER_ROUND,
-  buildRound,
-  gradeRound,
-  type Round,
-  type RoundResult,
-} from './domain/round';
+  coinsForAttempt,
+  completeStep,
+  currentStep,
+  diamonds,
+  isDiamondStep,
+  type Journey,
+} from './domain/journey';
+import { FACTS_PER_ROUND, gradeRound, type Round, type RoundResult } from './domain/round';
 import { applyOutcome, localDay, newRecord, selectFacts } from './domain/scheduler';
 import { kidProgress, parentStats } from './domain/stats';
 import { createRng, randomSeed } from './lib/rng';
 import { createStore, type GameMode, type Settings } from './storage/store';
 import type { Screen } from './ui/dom';
 import { dragScreen } from './ui/screens/drag';
-import { dragResultScreen } from './ui/screens/dragResult';
-import { homeScreen } from './ui/screens/home';
+import { dragResultScreen, type StepReward } from './ui/screens/dragResult';
+import { mapScreen } from './ui/screens/map';
 import { parentScreen, type ParentMode } from './ui/screens/parent';
 import { progressScreen } from './ui/screens/progress';
 import { recallScreen } from './ui/screens/recall';
@@ -49,10 +44,15 @@ type Game =
 
 type Outcome =
   | { readonly mode: 'find'; readonly round: Round; readonly result: RoundResult }
-  | { readonly mode: 'drag'; readonly round: DragRound; readonly result: DragResult };
+  | {
+      readonly mode: 'drag';
+      readonly round: DragRound;
+      readonly result: DragResult;
+      readonly reward: StepReward;
+    };
 
 type View =
-  | { readonly name: 'home'; readonly notice: string | null }
+  | { readonly name: 'map'; readonly notice: string | null }
   | { readonly name: 'study'; readonly game: Game; readonly seed: number }
   | {
       readonly name: 'recall';
@@ -79,42 +79,47 @@ export function createApp(root: HTMLElement): void {
   const store = createStore();
   const lock = createParentLock(store);
 
+  let journey: Journey = store.getJourney();
+  /** Which try at the current step this is. Session only: never stored. */
+  let attempt = 1;
+  /** The five facts this step is about, held so a retry asks the same ones. */
+  let stepFacts: Fact[] | null = null;
+
   let biometrics = false;
   let current: Screen | null = null;
-  let view: View = { name: 'home', notice: null };
-  /** So "Next round" offers the same game type the child just played. */
-  let lastMode: GameMode = 'drag';
+  let view: View = { name: 'map', notice: null };
 
   const show = (next: View): void => {
     view = next;
     render();
   };
 
-  // ---- rounds -------------------------------------------------------------
+  // ---- steps --------------------------------------------------------------
 
-  const startRound = (mode: GameMode): void => {
+  const startStep = (): void => {
     try {
-      const rounds = store.getRounds();
-      const recentFactIds = rounds.slice(-RECENT_ROUNDS).flatMap((round) => round.factIds);
+      if (!stepFacts) {
+        const recentFactIds = store
+          .getRounds()
+          .slice(-RECENT_ROUNDS)
+          .flatMap((round) => round.factIds);
+
+        stepFacts = selectFacts({
+          records: store.getFactRecords(),
+          recentFactIds,
+          count: FACTS_PER_ROUND,
+          rng: createRng(randomSeed()),
+        });
+      }
+
+      // A fresh seed every attempt: the same five facts, but new spare tiles, a
+      // new tray order and a new prompt order, so a retry tests what was
+      // remembered rather than where things happened to sit last time.
       const seed = randomSeed();
-      const rng = createRng(seed);
-
-      const facts = selectFacts({
-        records: store.getFactRecords(),
-        recentFactIds,
-        count: FACTS_PER_ROUND,
-        rng,
-      });
-
-      const game: Game =
-        mode === 'find'
-          ? { mode: 'find', round: buildRound(facts, rng) }
-          : { mode: 'drag', round: buildDragRound(facts, rng) };
-
-      lastMode = mode;
-      show({ name: 'study', game, seed });
+      show({ name: 'study', game: { mode: 'drag', round: buildDragRound(stepFacts, createRng(seed)) }, seed });
     } catch {
-      show({ name: 'home', notice: 'Could not start a round. Try again.' });
+      stepFacts = null;
+      show({ name: 'map', notice: 'Could not start that step. Try again.' });
     }
   };
 
@@ -150,6 +155,36 @@ export function createApp(root: HTMLElement): void {
     });
   };
 
+  /** Clears the step on a clean sweep, or charges a coin and keeps the facts. */
+  const settleStep = (perfect: boolean): StepReward => {
+    const step = currentStep(journey);
+
+    if (!perfect) {
+      attempt += 1;
+      return {
+        step,
+        passed: false,
+        coins: coinsForAttempt(attempt),
+        diamond: false,
+        diamonds: diamonds(journey),
+      };
+    }
+
+    const earned = coinsForAttempt(attempt);
+    journey = completeStep(journey, attempt);
+    store.saveJourney(journey);
+    attempt = 1;
+    stepFacts = null;
+
+    return {
+      step,
+      passed: true,
+      coins: earned,
+      diamond: isDiamondStep(step),
+      diamonds: diamonds(journey),
+    };
+  };
+
   // ---- parent area --------------------------------------------------------
 
   const parentMode = (): ParentMode => {
@@ -176,13 +211,12 @@ export function createApp(root: HTMLElement): void {
 
   const buildScreen = (): Screen => {
     switch (view.name) {
-      case 'home':
-        return homeScreen({
-          progress: kidProgress(store.getRounds(), store.getFactRecords(), localDay(new Date())),
+      case 'map':
+        return mapScreen({
+          journey,
           notice: view.notice,
           storageWorking: store.persistent,
-          onStartFind: () => startRound('find'),
-          onStartDrag: () => startRound('drag'),
+          onPlay: startStep,
           onProgress: () => show({ name: 'progress' }),
           onParent: () => show({ name: 'parent', error: null, busy: false }),
         });
@@ -222,25 +256,37 @@ export function createApp(root: HTMLElement): void {
           onDone: (placements, recallMs) => {
             const result = gradeDragRound(round, placements);
             recordRound({ mode: 'drag', facts: round.facts, ...result, seed, studyMs, recallMs });
-            show({ name: 'result', outcome: { mode: 'drag', round, result } });
+            const reward = settleStep(result.perfect);
+            show({ name: 'result', outcome: { mode: 'drag', round, result, reward } });
           },
         });
       }
 
       case 'result': {
         const { outcome } = view;
-        const onNext = (): void => startRound(lastMode);
-        const onHome = (): void => show({ name: 'home', notice: null });
+        const onMap = (): void => show({ name: 'map', notice: null });
 
         return outcome.mode === 'find'
-          ? resultScreen({ round: outcome.round, result: outcome.result, onNext, onHome })
-          : dragResultScreen({ round: outcome.round, result: outcome.result, onNext, onHome });
+          ? resultScreen({
+              round: outcome.round,
+              result: outcome.result,
+              onNext: startStep,
+              onHome: onMap,
+            })
+          : dragResultScreen({
+              round: outcome.round,
+              result: outcome.result,
+              reward: outcome.reward,
+              onContinue: startStep,
+              onMap,
+            });
       }
 
       case 'progress':
         return progressScreen({
           progress: kidProgress(store.getRounds(), store.getFactRecords(), localDay(new Date())),
-          onBack: () => show({ name: 'home', notice: null }),
+          journey,
+          onBack: () => show({ name: 'map', notice: null }),
         });
 
       case 'parent': {
@@ -266,9 +312,12 @@ export function createApp(root: HTMLElement): void {
           onClearAll: () => {
             store.clearAll();
             lock.forget();
-            show({ name: 'home', notice: 'Everything has been erased.' });
+            journey = store.getJourney();
+            attempt = 1;
+            stepFacts = null;
+            show({ name: 'map', notice: 'Everything has been erased.' });
           },
-          onBack: () => show({ name: 'home', notice: null }),
+          onBack: () => show({ name: 'map', notice: null }),
         });
       }
     }
@@ -280,12 +329,13 @@ export function createApp(root: HTMLElement): void {
     root.replaceChildren(current.element);
   }
 
-  // A round left running in the background could be studied indefinitely, and a
+  // A step left running in the background could be studied indefinitely, and a
   // recall timer that kept draining while the phone was locked would be unfair.
-  // Either way the round is discarded rather than recorded.
+  // The attempt is discarded without being recorded and without costing a coin,
+  // and the same five facts are still waiting on the map.
   const abandonIfPlaying = (): void => {
     if (view.name !== 'study' && view.name !== 'recall') return;
-    show({ name: 'home', notice: 'Round cancelled. Start again when you are ready.' });
+    show({ name: 'map', notice: 'Step cancelled. Tap it again when you are ready.' });
   };
 
   document.addEventListener('visibilitychange', () => {
