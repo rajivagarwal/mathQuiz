@@ -16,8 +16,8 @@ import {
   totalCoins,
   type Journey,
 } from '../../domain/journey';
-import { COINS_PER_STEP } from '../../domain/journey';
 import { el, screen, type Screen } from '../dom';
+import { paintStepBadge, type StepState } from '../stepBadge';
 
 export interface MapProps {
   readonly journey: Journey;
@@ -49,11 +49,6 @@ const TILE_RATIO = 1280 / 616;
 const STEPS_BEHIND = 8;
 const STEPS_AHEAD = 6;
 
-/** Geometry of one step, matching the design's 140 x 128 box. */
-const BADGE_CX = 70;
-const BADGE_CY = 56;
-const STAR_ARC_DEGREES = 104;
-
 /** How high above the bottom of the whole strip a step sits, in tiles. */
 function heightInTiles(step: number): number {
   const tile = Math.floor((step - 1) / PER_TILE);
@@ -65,24 +60,6 @@ function heightInTiles(step: number): number {
 function anchorX(step: number): number {
   const anchor = ANCHORS[PER_TILE - 1 - ((step - 1) % PER_TILE)] as readonly [number, number];
   return anchor[0];
-}
-
-/** Five stars on an arc under the badge, each tilted along the curve. */
-function starArc(parent: HTMLElement, earned: number, radius: number): void {
-  for (let i = 0; i < COINS_PER_STEP; i++) {
-    const degrees =
-      90 - STAR_ARC_DEGREES / 2 + (STAR_ARC_DEGREES * i) / (COINS_PER_STEP - 1);
-    const radians = (degrees * Math.PI) / 180;
-
-    const star = el('span', {
-      class: i < earned ? 'star star--on' : 'star',
-      children: [el('i')],
-    });
-    star.style.left = `${BADGE_CX + Math.cos(radians) * radius}px`;
-    star.style.top = `${BADGE_CY + Math.sin(radians) * radius}px`;
-    star.style.transform = `translate(-50%, -50%) rotate(${(degrees - 90).toFixed(1)}deg)`;
-    parent.append(star);
-  }
 }
 
 function woodenSign(): HTMLElement {
@@ -121,28 +98,18 @@ export function mapScreen(props: MapProps): Screen {
     const here = step === current;
     const milestone = !done && !here && isDiamondStep(step);
 
-    const state = done ? 'done' : here ? 'current' : milestone ? 'milestone' : 'locked';
+    const state: StepState = done
+      ? 'done'
+      : here
+        ? 'current'
+        : milestone
+          ? 'milestone'
+          : 'locked';
+
     const node = el('button', {
-      class: `node node--${state}`,
       attrs: { type: 'button', disabled: !here, 'aria-label': `Step ${step}` },
     });
-
-    // Wrapper holds the pole; only the pennant inside it waves.
-    if (milestone) node.append(el('span', { class: 'node__flag', children: [el('i')] }));
-
-    node.append(
-      el('span', {
-        class: 'node__disc',
-        children: here
-          ? [
-              el('span', { class: 'node__label', text: 'Step' }),
-              el('span', { class: 'node__num', text: String(step) }),
-            ]
-          : [el('span', { class: 'node__num', text: String(step) })],
-      }),
-    );
-
-    starArc(node, done ? (coinsAtStep(journey, step) ?? 0) : 0, here ? 58 : 51);
+    paintStepBadge(node, { step, state, earned: done ? (coinsAtStep(journey, step) ?? 0) : 0 });
 
     if (here) {
       node.addEventListener('click', props.onPlay);
