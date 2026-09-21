@@ -23,7 +23,13 @@ export function dragScreen({ round, durationMs, onDone }: DragProps): Screen {
   const placements = new Map<string, string>();
   const slots = new Map<string, HTMLButtonElement>();
   const tileButtons = new Map<string, HTMLButtonElement>();
-  let selected: string | null = null;
+  /**
+   * Tapping works from either end: arm a tile then choose its equation, or pick
+   * an equation first and then the answer. Only one end is ever armed, so the
+   * next tap on the other end always completes a placement.
+   */
+  let armedTile: string | null = null;
+  let armedSlot: string | null = null;
   let ghost: HTMLElement | null = null;
 
   const tileById = new Map(round.tiles.map((tile) => [tile.id, tile]));
@@ -36,25 +42,48 @@ export function dragScreen({ round, durationMs, onDone }: DragProps): Screen {
   /** Left-hand-side spans per equation, lit up while that row is the target. */
   const rowParts = new Map<string, HTMLElement[]>();
 
-  const highlight = (slot: HTMLButtonElement | null): void => {
-    for (const button of slots.values()) button.classList.remove('slot--over');
+  const lightRow = (targeted: string | null): void => {
     for (const parts of rowParts.values()) {
       for (const part of parts) part.classList.remove('eq--target');
     }
-    if (!slot) return;
-
-    slot.classList.add('slot--over');
-    const targeted = slot.dataset['fact'];
     for (const part of (targeted && rowParts.get(targeted)) || []) {
       part.classList.add('eq--target');
     }
   };
 
-  const select = (tileId: string | null): void => {
-    selected = tileId;
+  /** Transient highlight while a tile is being dragged over a slot. */
+  const highlight = (slot: HTMLButtonElement | null): void => {
+    for (const button of slots.values()) button.classList.remove('slot--over');
+    slot?.classList.add('slot--over');
+    lightRow(slot?.dataset['fact'] ?? null);
+  };
+
+  const refreshArmed = (): void => {
     for (const [id, button] of tileButtons) {
-      button.classList.toggle('tile--selected', id === selected);
+      button.classList.toggle('tile--selected', id === armedTile);
     }
+    for (const [id, button] of slots) {
+      button.classList.toggle('slot--armed', id === armedSlot);
+    }
+    lightRow(armedSlot);
+  };
+
+  const clearArmed = (): void => {
+    armedTile = null;
+    armedSlot = null;
+    refreshArmed();
+  };
+
+  const armTile = (tileId: string | null): void => {
+    armedTile = tileId;
+    armedSlot = null;
+    refreshArmed();
+  };
+
+  const armSlot = (slotFactId: string | null): void => {
+    armedSlot = slotFactId;
+    armedTile = null;
+    refreshArmed();
   };
 
   const startedAt = performance.now();
@@ -82,7 +111,7 @@ export function dragScreen({ round, durationMs, onDone }: DragProps): Screen {
     if (!tile || !slot || [...placements.values()].includes(tileId)) return;
 
     placements.set(slotFactId, tileId);
-    select(null);
+    clearArmed();
 
     const right = tile.factId === slotFactId;
     slot.textContent = String(tile.value);
@@ -96,6 +125,24 @@ export function dragScreen({ round, durationMs, onDone }: DragProps): Screen {
 
     counter.textContent = `${placements.size} of ${FACTS_PER_ROUND}`;
     if (placements.size === FACTS_PER_ROUND) finish();
+  };
+
+  /** A tap on a tile: completes an armed equation, or arms the tile itself. */
+  const tapTile = (tileId: string): void => {
+    if (armedSlot) {
+      place(armedSlot, tileId);
+      return;
+    }
+    armTile(armedTile === tileId ? null : tileId);
+  };
+
+  /** A tap on an empty slot: completes an armed tile, or arms the equation. */
+  const tapSlot = (slotFactId: string): void => {
+    if (armedTile) {
+      place(slotFactId, armedTile);
+      return;
+    }
+    armSlot(armedSlot === slotFactId ? null : slotFactId);
   };
 
   const slotUnder = (x: number, y: number): HTMLButtonElement | null => {
@@ -120,7 +167,7 @@ export function dragScreen({ round, durationMs, onDone }: DragProps): Screen {
 
       if (!dragging) {
         dragging = true;
-        select(null);
+        clearArmed();
         ghost = el('div', { class: 'tile tile--ghost', text: String(tile.value) });
         ghost.style.width = `${rect.width}px`;
         ghost.style.height = `${rect.height}px`;
@@ -147,8 +194,7 @@ export function dragScreen({ round, durationMs, onDone }: DragProps): Screen {
       highlight(null);
 
       if (!dragging) {
-        // A press that never moved is a tap: arm the tile, then tap a slot.
-        select(selected === tile.id ? null : tile.id);
+        tapTile(tile.id);
         return;
       }
 
@@ -177,16 +223,14 @@ export function dragScreen({ round, durationMs, onDone }: DragProps): Screen {
       const id = factId(fact);
       const slot = el('button', {
         class: 'slot',
-        attrs: { type: 'button', 'data-fact': id, 'aria-label': 'Drop an answer here' },
+        attrs: { type: 'button', 'data-fact': id, 'aria-label': 'Put an answer here' },
       });
 
-      slot.addEventListener('pointerup', () => {
-        if (selected) place(id, selected);
-      });
+      slot.addEventListener('pointerup', () => tapSlot(id));
       // Keyboard-generated clicks report detail 0, which distinguishes them from
       // the pointer path above and keeps the screen usable without a pointer.
       slot.addEventListener('click', (event) => {
-        if (event.detail === 0 && selected) place(id, selected);
+        if (event.detail === 0) tapSlot(id);
       });
 
       slots.set(id, slot);
@@ -213,7 +257,7 @@ export function dragScreen({ round, durationMs, onDone }: DragProps): Screen {
       });
       button.addEventListener('pointerdown', (event) => startPress(tile, button, event));
       button.addEventListener('click', (event) => {
-        if (event.detail === 0) select(selected === tile.id ? null : tile.id);
+        if (event.detail === 0) tapTile(tile.id);
       });
       tileButtons.set(tile.id, button);
       return button;

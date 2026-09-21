@@ -729,6 +729,14 @@ p {
   color: var(--pick);
 }
 
+/* Armed by a tap and waiting for an answer. Holds until a tile is chosen,
+   unlike --over, which only lasts while a drag hovers. */
+.slot--armed {
+  border-style: solid;
+  border-color: var(--pick);
+  transform: scale(1.06);
+}
+
 .slot--true,
 .slot--false {
   border-style: solid;
