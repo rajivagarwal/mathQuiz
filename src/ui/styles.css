@@ -159,9 +159,13 @@ body {
   display: flex;
   flex-direction: column;
   gap: 14px;
-  padding: 16px 14px;
-  margin-top: calc(10px + env(safe-area-inset-top));
-  margin-bottom: calc(10px + env(safe-area-inset-bottom));
+  /*
+    The panel runs the full height of the screen rather than floating as a card,
+    so there is no dark band above or below it. The safe areas move into its
+    padding: the parchment passes under the status bar and the home indicator
+    while the content inside still clears both.
+  */
+  padding: calc(16px + env(safe-area-inset-top)) 14px calc(16px + env(safe-area-inset-bottom));
   border-radius: 26px;
   background: linear-gradient(180deg, var(--paper), var(--paper-deep));
   box-shadow:
