@@ -100,6 +100,18 @@ body {
 }
 
 /*
+  The forest is painted on the root as well as the body. The body is fixed so
+  that iOS cannot rubber-band the document, and a fixed body's background is not
+  reliably propagated to the canvas -- which left the strip behind the home
+  indicator painted the root's default white once the page was allowed to draw
+  there. The flat colour underneath the gradient is what actually fills it.
+*/
+html {
+  background-color: #14261a;
+  background-image: radial-gradient(120% 90% at 50% 0%, #2b4a30, #0e1c10);
+}
+
+/*
   iOS rubber-bands the document even when nothing overflows, and
   `overscroll-behavior` alone does not stop it. Pinning the body to the viewport
   removes the document scroller altogether, so there is nothing left to bounce.
