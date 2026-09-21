@@ -1333,11 +1333,32 @@ p {
   z-index: 3;
 }
 
+/* Carved pills like the rest of the chrome, rather than bare text lying on the
+   artwork: the trail and its steps pass between them, and the labels stay
+   readable over whatever the scenery happens to be underneath. */
 .map__footer .btn--quiet {
+  min-height: 0;
+  padding: 9px 15px;
+  border-radius: 999px;
+  background: linear-gradient(175deg, #8c5620, #5f3813);
+  box-shadow:
+    0 0 0 4px #c98f3e,
+    0 5px 10px rgba(20, 40, 10, 0.45),
+    inset 0 3px 0 rgba(255, 220, 160, 0.3);
   font-family: var(--ui);
-  font-weight: 700;
+  font-weight: 800;
+  font-size: 14px;
   color: #ffe7bb;
-  text-shadow: 0 2px 2px rgba(20, 40, 10, 0.7);
+  text-shadow: 0 2px 0 rgba(60, 30, 8, 0.7);
+}
+
+.map__footer .btn--quiet:active {
+  transform: translateY(2px);
+  color: #fff3d8;
+  box-shadow:
+    0 0 0 4px #c98f3e,
+    0 2px 5px rgba(20, 40, 10, 0.45),
+    inset 0 3px 0 rgba(255, 220, 160, 0.3);
 }
 
 .reward {
