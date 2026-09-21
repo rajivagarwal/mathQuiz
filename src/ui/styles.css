@@ -92,10 +92,14 @@
   box-sizing: border-box;
 }
 
-html,
-body {
+html {
   margin: 0;
   height: 100%;
+  overscroll-behavior: none;
+}
+
+body {
+  margin: 0;
   overscroll-behavior: none;
 }
 
@@ -108,7 +112,9 @@ body {
 */
 html {
   background-color: #14261a;
-  background-image: radial-gradient(120% 90% at 50% 0%, #2b4a30, #0e1c10);
+  background-image: url('/scenery/forest-tile.jpg');
+  background-size: cover;
+  background-position: center bottom;
 }
 
 /*
@@ -117,10 +123,15 @@ html {
   removes the document scroller altogether, so there is nothing left to bounce.
   Screens that genuinely scroll do so inside their own container.
 */
+/*
+  Sized by its insets alone. Giving it height/width as well over-constrains the
+  box: the explicit sizes win, the insets are ignored, and the percentages
+  resolve against a viewport that excludes the home indicator -- leaving that
+  strip unpainted at the bottom of the screen.
+*/
 body {
   position: fixed;
   inset: 0;
-  width: 100%;
   overflow: hidden;
   background: radial-gradient(120% 90% at 50% 0%, #2b4a30, #0e1c10);
   color: var(--ink);
